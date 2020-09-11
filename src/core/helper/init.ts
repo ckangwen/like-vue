@@ -1,21 +1,30 @@
-import { Vue, observe } from '@/core'
-import { ComponentOptions } from '@/types'
+import { Vue, observe, createElement } from '@/core'
+import { ComponentOptions, LiftcycleEnum } from '@/types'
 import {
   isPlainObject,
   __DEV__,
   hasOwn,
   isReserved,
-  hyphenate,
-  isHTMLTag,
   noop,
-  isDef,
-  query,
-  inBrowser
 } from '@/shared'
+
+export function initEvent(vm: Vue) {
+  vm._events = Object.create(null)
+}
+
+export function initLifecycle(vm: Vue) {
+  vm._isMounted = false
+}
+
+export function initRender(vm: Vue) {
+  vm._vnode = null
+  vm.$createElement = (a: any, b: any, c: any) => createElement(vm, a, b, c)
+}
 
 export function initState(vm: Vue, options: ComponentOptions) {
   vm._watcher = undefined
   vm._watchers = []
+
   if (options.data) {
     initData(vm)
   } else {
@@ -85,4 +94,14 @@ export function proxy(target: Record<string, any>, sourceKey: string, key: strin
     target[sourceKey][key] = val
   }
   Object.defineProperty(target, key, sharedPropertyDefinition)
+}
+
+export function callHook(vm: Vue, hook: LiftcycleEnum) {
+  let handlers = vm.$options[hook]
+  if (!handlers) return
+  handlers = Array.isArray(handlers) ? handlers : [handlers]
+
+  handlers.forEach(handler => {
+    handler.call(vm)
+  })
 }

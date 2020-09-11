@@ -2,8 +2,8 @@ import { Vue } from '@/core';
 
 type PlainObject<T> = Record<string, T>
 
-type LifecycleHook = Function[] | null
-type LiftcycleEnum =
+type LifecycleHook = Function[] | Function | null
+export type LiftcycleEnum =
   | 'beforeCreate'
   | 'created'
   | 'beforeMount'
@@ -42,15 +42,9 @@ export interface PropsObjectOptions {
 export type UserComponentOptions = {
   el?: string
   data?: DefaultData
-  props?: PropsType
-  computed?: ComputedType
-  watch?: WatchType
-  methods?: Record<string, Function>
   render?: Function;
-
-  components?: any[]
-
   name?: string;
+  [key: string]: any
 } & ComponentLifecycleOptions
 
 export interface ComponentOptions extends UserComponentOptions {

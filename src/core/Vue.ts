@@ -1,18 +1,17 @@
-import { Watcher } from './observe/Watcher';
+import { Watcher } from '@/core/observe';
 import { ComponentOptions } from '@/types'
-import { createElement } from './vdom/createElement';
-import { VNode } from './vdom/vnode';
-import { patch } from './vdom/patch';
-import { initState } from './helper/init';
+import { VNode, patch } from '@/core/vdom';
 import {
-  isPlainObject,
+  callHook,
+  initState,
+  initRender,
+  initEvent,
+  initLifecycle,
+  mergeOptions
+} from '@/core/helper';
+import {
   __DEV__,
-  hasOwn,
-  isReserved,
-  hyphenate,
-  isHTMLTag,
   noop,
-  isDef,
   query,
   inBrowser
 } from '@/shared'
@@ -21,21 +20,25 @@ let uid = 0
 
 export class Vue {
   static cid: number
+  static config?: any;
   options?: ComponentOptions
   super?: Vue
   _watcher?: Watcher<Vue>
   _watchers?: Watcher<Vue>[]
-  _vnode: VNode | null
+  _vnode: VNode | null = null
 
 
   _uid: number
   _self: Vue
   _data?: Record<string, any>
+  _events: any;
+  _isMounted: boolean = false
 
   $el: Element | null
   $options: ComponentOptions
   $children?: any[]
   $createElement?: Function;
+  $vnode: VNode | null = null
 
   __patch__ = patch
 
@@ -43,14 +46,20 @@ export class Vue {
   constructor(options: ComponentOptions = {}) {
     this._uid = ++uid
     this._self = this
-    this.$options = options
     this.$children = []
-    this._vnode = null
+
+    this.$options = mergeOptions(options, {}, this)
+
 
     this.$el = null
-    this.$createElement = (a: any, b: any, c: any) => createElement(this, a, b, c)
 
+
+    initLifecycle(this)
+    initEvent(this)
+    initRender(this)
+    callHook(this, 'beforeCreate');
     initState(this, options)
+    callHook(this, 'created');
   }
 
   _render() {
@@ -109,7 +118,12 @@ export class Vue {
       this, () => {
         this._update(this._render(), hydrating)
       },
-      noop
+      noop,
+      undefined,
+      true
     )
+
+    this._isMounted = true
+    callHook(this, 'mounted')
   }
 }

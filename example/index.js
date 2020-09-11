@@ -1,6 +1,21 @@
 (function () {
   'use strict';
 
+  var LIFECYCLE_HOOKS = [
+      'beforeCreate',
+      'created',
+      'beforeMount',
+      'mounted',
+      'beforeUpdate',
+      'updated',
+      'beforeDestroy',
+      'destroyed',
+      'activated',
+      'deactivated',
+      'errorCaptured',
+      'serverPrefetch'
+  ];
+
   function isPrimitive(s) {
       return typeof s === 'string' || typeof s === 'number';
   }
@@ -56,6 +71,19 @@
       };
   }
   var inBrowser = typeof window !== 'undefined';
+  function deepset(target, key, value) {
+      var segments = key.split('.');
+      if (segments.length === 1) {
+          target[key] = value;
+          return;
+      }
+      for (var i = 0; i < segments.length - 1; i++) {
+          if (!target)
+              return;
+          target = target[segments[i]];
+      }
+      target && (target[segments[segments.length - 1]] = value);
+  }
 
   /**
    * 检查是否以_或$开头
@@ -322,246 +350,6 @@
       };
   }
 
-  var VNode = /** @class */ (function () {
-      function VNode(_a) {
-          var context = _a.context, _b = _a.tag, tag = _b === void 0 ? '' : _b, _c = _a.data, data = _c === void 0 ? {} : _c, _d = _a.children, children = _d === void 0 ? [] : _d, _e = _a.text, text = _e === void 0 ? '' : _e, elm = _a.elm;
-          this.tag = tag;
-          this.data = data;
-          this.children = children;
-          this.text = text;
-          this.elm = elm;
-          this.context = context;
-          this.isComment = false;
-      }
-      return VNode;
-  }());
-  function createTextVNode(text) {
-      if (text === void 0) { text = ''; }
-      return new VNode({ text: text });
-  }
-  function createEmptyVNode(text) {
-      if (text === void 0) { text = ''; }
-      var vnode = new VNode({ text: text });
-      vnode.isComment = true;
-      return vnode;
-  }
-
-  function createElement(context, tag, data, children) {
-      /* 没有传入data */
-      if (Array.isArray(data) || isPrimitive(data)) {
-          children = data;
-          data = undefined;
-      }
-      if (!tag)
-          return createTextVNode();
-      children = normalizeChildren(children);
-      var vnode;
-      if (typeof tag === 'string') {
-          if (isHTMLTag(tag)) {
-              vnode = new VNode({
-                  context: context,
-                  tag: tag,
-                  data: data,
-                  children: children
-              });
-          }
-      }
-      if (isDef(vnode)) {
-          return vnode;
-      }
-      else {
-          return createEmptyVNode();
-      }
-  }
-  /**
-   * 校验子组件是否符合规范
-   */
-  function normalizeChildren(children) {
-      return isPrimitive(children)
-          ? [createTextVNode(children)]
-          : Array.isArray(children)
-              ? normalizeArrayChildren(children)
-              : undefined;
-  }
-  /**
-   * 省略了合并相邻文本节点的过程
-   */
-  function normalizeArrayChildren(children, nestedIndex) {
-      return children.map(function (child, i) {
-          if (!isDef(child) || typeof child === 'boolean')
-              return null;
-          if (isPrimitive(child)) {
-              return createTextVNode(child);
-          }
-          else if (Array.isArray(child)) {
-              return normalizeArrayChildren(child);
-          }
-          else {
-              // TODO 如果是v-for的情况
-              return child;
-          }
-      });
-  }
-
-  var arrayProto = Array.prototype;
-  var arrayMethods = Object.create(arrayProto);
-  var methodsToPatch = [
-      'push',
-      'pop',
-      'shift',
-      'unshift',
-      'splice',
-      'sort',
-      'reverse'
-  ];
-  methodsToPatch.forEach(function (method) {
-      def(arrayMethods, method, function () {
-          var args = [];
-          for (var _i = 0; _i < arguments.length; _i++) {
-              args[_i] = arguments[_i];
-          }
-          var result = arrayMethods[method].apply(this, args);
-          // 获取到Observer实例
-          var ob = this.__ob__;
-          var inserted;
-          // 对于新增的内容也要进行响应式转换，否则会出现修改数据时无法触发消息的问题
-          switch (method) {
-              case 'push':
-              case 'unshift':
-                  inserted = args;
-                  break;
-              case 'splice':
-                  inserted = args.slice(2);
-                  break;
-          }
-          if (inserted)
-              ob.observeArray(inserted);
-          ob.dep.notify(); // 数组改变之后，向依赖发送消息
-          return result;
-      });
-  });
-
-  var Observer = /** @class */ (function () {
-      function Observer(value) {
-          this.value = value;
-          this.dep = new Dep();
-          def(value, '__ob__', this);
-          if (Array.isArray(value)) {
-              value.__proto__ = arrayMethods;
-              this.observeArray(value);
-          }
-          else {
-              this.walk(value);
-          }
-      }
-      Observer.prototype.walk = function (obj) {
-          Object.keys(obj).forEach(function (key) {
-              defineReactive(obj, key);
-          });
-      };
-      Observer.prototype.observeArray = function (items) {
-          items.forEach(function (item) {
-              observe(item);
-          });
-      };
-      return Observer;
-  }());
-  function dependArray(values) {
-      values.forEach(function (value) {
-          if (isObservable(value)) {
-              value.__ob__.dep.depend();
-          }
-          if (Array.isArray(value))
-              dependArray(value);
-      });
-  }
-  function observe(value) {
-      /* 值类型不用进行响应式转换 */
-      if (!isObject(value))
-          return;
-      if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
-          return value.__ob__;
-      }
-      if ((Array.isArray(value) || isPlainObject(value)) &&
-          Object.isExtensible(value)) {
-          return new Observer(value);
-      }
-  }
-  function defineReactive(obj, key, val, customSetter, shallow // 如果设置为true，则不会对val进行响应式处理，即只对obj的key属性的值响应式处理
-  ) {
-      var dep = new Dep();
-      var property = Object.getOwnPropertyDescriptor(obj, key);
-      if (property && property.configurable === false) {
-          return;
-      }
-      var getter = property && property.get;
-      var setter = property && property.set;
-      val = val ? val : obj[key];
-      var childOb = !shallow && observe(val);
-      Object.defineProperty(obj, key, {
-          enumerable: true,
-          configurable: true,
-          get: function reactiveGetter() {
-              var value = getter ? getter.call(obj) : val;
-              /**
-               * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
-               * 而事情发生在reactiveGetter中，Watcher正在读取obj对象
-               * 那么就通知Watcher将该对象进行收集(在Watcher中会进一步判断是否该对象已经被收集)
-               * 收集的是该状态的Dep，因为dep中存放着Watcher(订阅者)列表
-               *
-               * 与订阅观察者模式的不同是，前者是把所有的事件以及回调存放在一个全局统一变量中，通过事件名触发事件，依次调用回调函数列表中属于该事件名的回调函数
-               * 而在vue中，每个状态都有一份独立的Dep，其中存放的是Watcher，在状态发生变化时，会遍历状态的Dep，触发Watcher的update()方法
-               */
-              if (Dep.target) {
-                  dep.depend();
-                  if (childOb) {
-                      childOb.dep.depend();
-                      if (Array.isArray(value)) {
-                          dependArray(value);
-                      }
-                  }
-              }
-              return value;
-          },
-          set: function reactiveSetter(newVal) {
-              var value = getter ? getter.call(obj) : val;
-              if (newVal === value || (newVal !== newVal && value !== value)) {
-                  return;
-              }
-              if ( customSetter) {
-                  customSetter(newVal);
-              }
-              if (getter && !setter)
-                  return;
-              if (setter) {
-                  setter.call(obj, newVal);
-              }
-              else {
-                  val = newVal;
-              }
-              childOb = !shallow && observe(newVal);
-              // 依赖变化后，触发更新，通知Dep类调用notify来触发所有Watcher对象的update方法更新对应视图
-              /**
-               * 获取到观察该状态的所有Watcher
-               * 触发更新
-               * (观察者模式中是调用订阅列表中的函数)
-               */
-              dep.notify();
-          }
-      });
-  }
-  /*  helper */
-  function isObservable(value) {
-      if (value && value.__ob__) {
-          return true;
-      }
-      return false;
-  }
-  /**
-   * on   - getter => dep.depend() => watcher.deps.add(dep)
-   * emit - update => run
-   */
-
   /*! *****************************************************************************
   Copyright (c) Microsoft Corporation.
 
@@ -588,15 +376,54 @@
       return __assign.apply(this, arguments);
   };
 
-  function __spreadArrays() {
-      for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-      for (var r = Array(s), k = 0, i = 0; i < il; i++)
-          for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-              r[k] = a[j];
-      return r;
+  function __read(o, n) {
+      var m = typeof Symbol === "function" && o[Symbol.iterator];
+      if (!m) return o;
+      var i = m.call(o), r, ar = [], e;
+      try {
+          while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+      }
+      catch (error) { e = { error: error }; }
+      finally {
+          try {
+              if (r && !r.done && (m = i["return"])) m.call(i);
+          }
+          finally { if (e) throw e.error; }
+      }
+      return ar;
   }
 
-  function createElement$1(tagName) {
+  function __spread() {
+      for (var ar = [], i = 0; i < arguments.length; i++)
+          ar = ar.concat(__read(arguments[i]));
+      return ar;
+  }
+
+  var VNode = /** @class */ (function () {
+      function VNode(_a) {
+          var context = _a.context, _b = _a.tag, tag = _b === void 0 ? '' : _b, _c = _a.data, data = _c === void 0 ? {} : _c, _d = _a.children, children = _d === void 0 ? [] : _d, _e = _a.text, text = _e === void 0 ? '' : _e, elm = _a.elm;
+          this.tag = tag;
+          this.data = data;
+          this.children = children;
+          this.text = text;
+          this.elm = elm;
+          this.context = context;
+          this.isComment = false;
+      }
+      return VNode;
+  }());
+  function createTextVNode(text) {
+      if (text === void 0) { text = ''; }
+      return new VNode({ text: text });
+  }
+  function createEmptyVNode(text) {
+      if (text === void 0) { text = ''; }
+      var vnode = new VNode({ text: text });
+      vnode.isComment = true;
+      return vnode;
+  }
+
+  function createElement(tagName) {
       return document.createElement(tagName);
   }
   function createTextNode(text) {
@@ -639,7 +466,7 @@
       return node.nodeType === 8;
   }
   var domApi = {
-      createElement: createElement$1,
+      createElement: createElement,
       createTextNode: createTextNode,
       createComment: createComment,
       insertBefore: insertBefore,
@@ -682,14 +509,14 @@
       }
       if (Array.isArray(obj)) {
           obj.forEach(function (ctx) {
-              callPatchHook.apply(void 0, __spreadArrays([ctx, hook], args));
+              callPatchHook.apply(void 0, __spread([ctx, hook], args));
           });
       }
       else {
           var fn = obj[hook];
           if (fn instanceof Set) {
               fn.forEach(function (f) {
-                  (typeof f === 'function') && f.apply(void 0, args);
+                  (typeof f === 'function') && f.apply(void 0, __spread(args));
               });
           }
       }
@@ -1261,71 +1088,26 @@
 
   var patch = initPatch([hookModule, hookModule$1, hookModule$2, hookModule$3]);
 
-  var uid$2 = 0;
-  var Vue = /** @class */ (function () {
-      function Vue(options) {
-          var _this = this;
-          if (options === void 0) { options = {}; }
-          this.__patch__ = patch;
-          this._uid = ++uid$2;
-          this._self = this;
-          this.$options = options;
-          this.$children = [];
-          this._vnode = null;
-          this.$el = null;
-          this.$createElement = function (a, b, c) { return createElement(_this, a, b, c); };
-          this._watcher = undefined;
-          this._watchers = [];
-          if (options.data) {
-              initData(this);
-          }
-          else {
-              observe(this._data = {});
-          }
+  function initEvent(vm) {
+      vm._events = Object.create(null);
+  }
+  function initLifecycle(vm) {
+      vm._isMounted = false;
+  }
+  function initRender(vm) {
+      vm._vnode = null;
+      vm.$createElement = function (a, b, c) { return createElement$1(vm, a, b, c); };
+  }
+  function initState(vm, options) {
+      vm._watcher = undefined;
+      vm._watchers = [];
+      if (options.data) {
+          initData(vm);
       }
-      Vue.prototype._render = function () {
-          var vm = this;
-          var render = vm.$options.render;
-          var vnode = render && render.call(vm, vm.$createElement);
-          if (Array.isArray(vnode) && vnode.length === 1) {
-              vnode = vnode[0];
-          }
-          return vnode;
-      };
-      Vue.prototype._update = function (vnode, hydrating) {
-          var vm = this;
-          /* vnode记录当前DOM映射的VNode */
-          var prevVnode = vm._vnode;
-          /** _vnode表示当前DOM所表示的VNode */
-          vm._vnode = vnode;
-          if (!prevVnode) {
-              // initial render
-              vm.$el = vm.__patch__(vm.$el, vnode);
-          }
-          else {
-              // updates
-              vm.$el = vm.__patch__(prevVnode, vnode);
-          }
-      };
-      Vue.prototype.$mount = function (el, hydrating) {
-          var vm = this;
-          el = el && inBrowser ? query(el) : undefined;
-          if (!el) {
-               console.warn(el + " does not exist");
-              return this;
-          }
-          if (el === document.body || el === document.documentElement) {
-               console.warn("Do not mount Vue to <html> or <body> - mount to normal elements instead.");
-              return this;
-          }
-          vm.$el = el;
-          var updateComponent = function () {
-              vm._update(vm._render(), hydrating);
-          };
-          new Watcher(vm, updateComponent, noop);
-      };
-      return Vue;
-  }());
+      else {
+          observe(vm._data = {});
+      }
+  }
   function initData(vm) {
       var data = vm.$options.data;
       if (!data)
@@ -1378,6 +1160,366 @@
       };
       Object.defineProperty(target, key, sharedPropertyDefinition);
   }
+  function callHook(vm, hook) {
+      var handlers = vm.$options[hook];
+      if (!handlers)
+          return;
+      handlers.forEach(function (handler) {
+          handler.call(vm);
+      });
+  }
+
+  var config = {
+      optionMergeStrategies: Object.create(null)
+  };
+
+  function setConfig(key, value) {
+      if (key === 'set') {
+          console.warn('Do not replace the set method');
+          return;
+      }
+      deepset(config, key, value);
+  }
+  function initGlobalAPI(Vue) {
+      var configDef = {};
+      configDef.get = function () { return __assign(__assign({}, config), { set: setConfig }); };
+      {
+          configDef.set = function () {
+              console.warn('Do not replace the Vue.config object, set individual fields instead.');
+          };
+      }
+      Object.defineProperty(Vue, 'config', configDef);
+  }
+
+  var strategies = config.optionMergeStrategies;
+  LIFECYCLE_HOOKS.forEach(function (hook) {
+      strategies[hook] = mergeHook;
+  });
+  var defaultStrat = function (parentVal, childVal) {
+      return childVal === undefined
+          ? parentVal
+          : childVal;
+  };
+  function mergeOptions(parent, child, vm) {
+      if (child === void 0) { child = {}; }
+      var options = {};
+      var key;
+      for (key in parent) {
+          mergeField(key);
+      }
+      for (key in child) {
+          if (!hasOwn(parent, key)) {
+              mergeField(key);
+          }
+      }
+      function mergeField(key) {
+          var strat = strategies[key] || defaultStrat;
+          options[key] = strat(parent[key], child[key], vm, key);
+      }
+      return options;
+  }
+  function mergeHook(parent, child) {
+      parent = parent ? Array.isArray(parent) ? parent : [parent] : parent;
+      child = child ? Array.isArray(child) ? parent : [child] : child;
+      var res = child
+          ? parent
+              ? parent.concat(child)
+              : child
+          : parent;
+      // console.log(new Set<Function>(res));
+      return res ? __spread(new Set(res)) : res;
+      // return res ? dedupeHooks(res) : res
+  }
+
+  var uid$2 = 0;
+  var Vue = /** @class */ (function () {
+      function Vue(options) {
+          if (options === void 0) { options = {}; }
+          this._vnode = null;
+          this._isMounted = false;
+          this.$vnode = null;
+          this.__patch__ = patch;
+          this._uid = ++uid$2;
+          this._self = this;
+          this.$children = [];
+          this.$options = mergeOptions(options, {}, this);
+          this.$el = null;
+          initLifecycle(this);
+          initEvent(this);
+          initRender(this);
+          callHook(this, 'beforeCreate');
+          initState(this, options);
+          callHook(this, 'created');
+      }
+      Vue.prototype._render = function () {
+          var render = this.$options.render;
+          var vnode = render && render.call(this, this.$createElement);
+          if (Array.isArray(vnode) && vnode.length === 1) {
+              vnode = vnode[0];
+          }
+          return vnode;
+      };
+      Vue.prototype._update = function (vnode, hydrating) {
+          /**
+           * _vnode记录当前DOM映射的VNode
+           * 此时的_vnode还没有更新，所以指代的是更新前的vnode
+           *  */
+          var prevVnode = this._vnode;
+          /**
+           * 更新_vnode
+           * */
+          this._vnode = vnode;
+          if (!prevVnode) {
+              // initial render
+              this.$el = this.__patch__(this.$el, vnode);
+          }
+          else {
+              // updates
+              this.$el = this.__patch__(prevVnode, vnode);
+          }
+      };
+      Vue.prototype.$mount = function (el, hydrating) {
+          var _this = this;
+          el = el && inBrowser ? query(el) : undefined;
+          if (!el) {
+               console.warn(el + " does not exist");
+              return this;
+          }
+          if (el === document.body || el === document.documentElement) {
+               console.warn("Do not mount Vue to <html> or <body> - mount to normal elements instead.");
+              return this;
+          }
+          this.$el = el;
+          /**
+           * render watcher
+           * 观察渲染函数中状态(state，observer)的变化，如果变化则触发更新(_update)
+           * 之所以能够观察到渲染函数中的状态是因为Watcher需要监听的表达式是一个函数，如果是一个函数，则其中所有被访问的对象都会被监听
+           */
+          new Watcher(this, function () {
+              _this._update(_this._render(), hydrating);
+          }, noop, undefined, true);
+          this._isMounted = true;
+          callHook(this, 'mounted');
+      };
+      return Vue;
+  }());
+  initGlobalAPI(Vue);
+
+  var arrayProto = Array.prototype;
+  var arrayMethods = Object.create(arrayProto);
+  var methodsToPatch = [
+      'push',
+      'pop',
+      'shift',
+      'unshift',
+      'splice',
+      'sort',
+      'reverse'
+  ];
+  methodsToPatch.forEach(function (method) {
+      def(arrayMethods, method, function () {
+          var args = [];
+          for (var _i = 0; _i < arguments.length; _i++) {
+              args[_i] = arguments[_i];
+          }
+          var result = arrayMethods[method].apply(this, args);
+          // 获取到Observer实例
+          var ob = this.__ob__;
+          var inserted;
+          // 对于新增的内容也要进行响应式转换，否则会出现修改数据时无法触发消息的问题
+          switch (method) {
+              case 'push':
+              case 'unshift':
+                  inserted = args;
+                  break;
+              case 'splice':
+                  inserted = args.slice(2);
+                  break;
+          }
+          if (inserted)
+              ob.observeArray(inserted);
+          ob.dep.notify(); // 数组改变之后，向依赖发送消息
+          return result;
+      });
+  });
+
+  var Observer = /** @class */ (function () {
+      function Observer(value) {
+          this.value = value;
+          this.dep = new Dep();
+          def(value, '__ob__', this);
+          if (Array.isArray(value)) {
+              value.__proto__ = arrayMethods;
+              this.observeArray(value);
+          }
+          else {
+              this.walk(value);
+          }
+      }
+      Observer.prototype.walk = function (obj) {
+          Object.keys(obj).forEach(function (key) {
+              defineReactive(obj, key);
+          });
+      };
+      Observer.prototype.observeArray = function (items) {
+          items.forEach(function (item) {
+              observe(item);
+          });
+      };
+      return Observer;
+  }());
+  function dependArray(values) {
+      values.forEach(function (value) {
+          if (isObservable(value)) {
+              value.__ob__.dep.depend();
+          }
+          if (Array.isArray(value))
+              dependArray(value);
+      });
+  }
+  function observe(value) {
+      /* 值类型不用进行响应式转换 */
+      if (!isObject(value))
+          return;
+      if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+          return value.__ob__;
+      }
+      if ((Array.isArray(value) || isPlainObject(value)) &&
+          Object.isExtensible(value)) {
+          return new Observer(value);
+      }
+  }
+  function defineReactive(obj, key, val, customSetter, shallow // 如果设置为true，则不会对val进行响应式处理，即只对obj的key属性的值响应式处理
+  ) {
+      var dep = new Dep();
+      var property = Object.getOwnPropertyDescriptor(obj, key);
+      if (property && property.configurable === false) {
+          return;
+      }
+      var getter = property && property.get;
+      var setter = property && property.set;
+      val = val ? val : obj[key];
+      var childOb = !shallow && observe(val);
+      Object.defineProperty(obj, key, {
+          enumerable: true,
+          configurable: true,
+          get: function reactiveGetter() {
+              var value = getter ? getter.call(obj) : val;
+              /**
+               * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
+               * 而事情发生在reactiveGetter中，Watcher正在读取obj对象
+               * 那么就通知Watcher将该对象进行收集(在Watcher中会进一步判断是否该对象已经被收集)
+               * 收集的是该状态的Dep，因为dep中存放着Watcher(订阅者)列表
+               *
+               * 与订阅观察者模式的不同是，前者是把所有的事件以及回调存放在一个全局统一变量中，通过事件名触发事件，依次调用回调函数列表中属于该事件名的回调函数
+               * 而在vue中，每个状态都有一份独立的Dep，其中存放的是Watcher，在状态发生变化时，会遍历状态的Dep，触发Watcher的update()方法
+               */
+              if (Dep.target) {
+                  dep.depend();
+                  if (childOb) {
+                      childOb.dep.depend();
+                      if (Array.isArray(value)) {
+                          dependArray(value);
+                      }
+                  }
+              }
+              return value;
+          },
+          set: function reactiveSetter(newVal) {
+              var value = getter ? getter.call(obj) : val;
+              if (newVal === value || (newVal !== newVal && value !== value)) {
+                  return;
+              }
+              if ( customSetter) {
+                  customSetter(newVal);
+              }
+              if (getter && !setter)
+                  return;
+              if (setter) {
+                  setter.call(obj, newVal);
+              }
+              else {
+                  val = newVal;
+              }
+              childOb = !shallow && observe(newVal);
+              // 依赖变化后，触发更新，通知Dep类调用notify来触发所有Watcher对象的update方法更新对应视图
+              /**
+               * 获取到观察该状态的所有Watcher
+               * 触发更新
+               * (观察者模式中是调用订阅列表中的函数)
+               */
+              dep.notify();
+          }
+      });
+  }
+  /*  helper */
+  function isObservable(value) {
+      if (value && value.__ob__) {
+          return true;
+      }
+      return false;
+  }
+  /**
+   * on   - getter => dep.depend() => watcher.deps.add(dep)
+   * emit - update => run
+   */
+
+  function createElement$1(context, tag, data, children) {
+      /* 没有传入data */
+      if (Array.isArray(data) || isPrimitive(data)) {
+          children = data;
+          data = undefined;
+      }
+      if (!tag)
+          return createTextVNode();
+      children = normalizeChildren(children);
+      var vnode;
+      if (typeof tag === 'string') {
+          if (isHTMLTag(tag)) {
+              vnode = new VNode({
+                  context: context,
+                  tag: tag,
+                  data: data,
+                  children: children
+              });
+          }
+      }
+      if (isDef(vnode)) {
+          return vnode;
+      }
+      else {
+          return createEmptyVNode();
+      }
+  }
+  /**
+   * 校验子组件是否符合规范
+   */
+  function normalizeChildren(children) {
+      return isPrimitive(children)
+          ? [createTextVNode(children)]
+          : Array.isArray(children)
+              ? normalizeArrayChildren(children)
+              : undefined;
+  }
+  /**
+   * 省略了合并相邻文本节点的过程
+   */
+  function normalizeArrayChildren(children, nestedIndex) {
+      return children.map(function (child, i) {
+          if (!isDef(child) || typeof child === 'boolean')
+              return null;
+          if (isPrimitive(child)) {
+              return createTextVNode(child);
+          }
+          else if (Array.isArray(child)) {
+              return normalizeArrayChildren(child);
+          }
+          else {
+              // TODO 如果是v-for的情况
+              return child;
+          }
+      });
+  }
 
   new Vue({
       data: function () {
@@ -1385,9 +1527,18 @@
               text: 'text'
           };
       },
+      props: {
+          some: String
+      },
       render: function (h) {
           var text = this.text;
           return h('div', {}, [text]);
+      },
+      beforeCreate: function () {
+          console.log(11);
+      },
+      created: function () {
+          console.log(3333);
       }
   })
       .$mount('#app');

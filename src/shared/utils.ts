@@ -68,3 +68,16 @@ export function cached (fn: Function) {
 }
 
 export const inBrowser = typeof window !== 'undefined'
+
+export function deepset(target: Record<string, any>, key: string, value: any) {
+  const segments = key.split('.')
+  if (segments.length === 1) {
+    target[key] = value
+    return
+  }
+  for (let i = 0; i < segments.length - 1; i++) {
+    if (!target) return
+    target = target[segments[i]]
+  }
+  target && (target[segments[segments.length - 1]] = value)
+}
