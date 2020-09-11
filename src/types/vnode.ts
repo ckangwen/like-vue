@@ -1,6 +1,7 @@
 import * as CSS from 'csstype'
 import { VNode } from '@/core/vdom'
 import { ModuleHookSet } from './patch-hook';
+import { PlainObject } from './utils';
 
 /* CSS */
 export type CSSPropertiesKeys = keyof CSS.Properties
@@ -9,7 +10,6 @@ export type CssBodyDeclaration = {
 }
 
 export type Key = string | number
-type PlainObject<T> = Record<string, T>
 
 type NativeOn = {
   [N in keyof HTMLElementEventMap]?: (e: HTMLElementEventMap[N]) => void

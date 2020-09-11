@@ -1,8 +1,10 @@
 import { Vue } from '@/core';
+import { PlainObject } from './utils';
 
-type PlainObject<T> = Record<string, T>
+export type VueCtor = typeof Vue
 
 type LifecycleHook = Function[] | Function | null
+
 export type LiftcycleEnum =
   | 'beforeCreate'
   | 'created'
@@ -50,3 +52,13 @@ export type UserComponentOptions = {
 export interface ComponentOptions extends UserComponentOptions {
 
 }
+
+export type VuePluginInstallType = (Vue: VueCtor, ...args: any[]) => void
+
+export type VuePluginOptions = {
+  install: VuePluginInstallType
+} | VuePluginInstallType
+
+export type VuePlugin = (plugin: VuePluginOptions, ...args: any[]) => VueCtor
+
+export type VueMixin = (mixin: ComponentOptions) => VueCtor

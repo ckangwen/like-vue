@@ -1,6 +1,7 @@
 import { Watcher } from '@/core/observe';
-import { ComponentOptions } from '@/types'
+import { ComponentOptions, VuePlugin, VueMixin, VuePluginOptions } from '@/types'
 import { VNode, patch } from '@/core/vdom';
+import { initGlobalAPI } from './global-api/index';
 import {
   callHook,
   initState,
@@ -20,7 +21,11 @@ let uid = 0
 
 export class Vue {
   static cid: number
+  static options: ComponentOptions
   static config?: any;
+  static use: VuePlugin
+  static mixin:  VueMixin
+  static _installedPlugins: VuePluginOptions[] = []
   options?: ComponentOptions
   super?: Vue
   _watcher?: Watcher<Vue>
@@ -48,7 +53,11 @@ export class Vue {
     this._self = this
     this.$children = []
 
-    this.$options = mergeOptions(options, {}, this)
+    /**
+     * 与全局options进行合并
+     * 例如Vue.mixin()
+     * */
+    this.$options = mergeOptions(Vue.options, options, this)
 
 
     this.$el = null
@@ -127,3 +136,5 @@ export class Vue {
     callHook(this, 'mounted')
   }
 }
+
+initGlobalAPI(Vue)

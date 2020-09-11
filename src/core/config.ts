@@ -4,6 +4,6 @@ export type GlobalConfig = {
   }
 }
 
-export const config: GlobalConfig = {
+export const globalConfig: GlobalConfig = {
   optionMergeStrategies: Object.create(null)
 }

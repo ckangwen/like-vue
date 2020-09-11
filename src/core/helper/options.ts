@@ -1,8 +1,9 @@
-import { Vue, config } from '@/core'
-import { ComponentOptions } from '@/types';
-import { hasOwn, LIFECYCLE_HOOKS } from '@/shared';
+import { Vue } from '@/core'
+import { ComponentOptions } from '@/types'
+import { hasOwn, LIFECYCLE_HOOKS } from '@/shared'
+import { globalConfig } from '../config'
 
-let strategies = config.optionMergeStrategies
+let strategies = globalConfig.optionMergeStrategies
 
 LIFECYCLE_HOOKS.forEach(hook => {
   strategies[hook] = mergeHook
@@ -14,7 +15,7 @@ const defaultStrat = function (parentVal: any, childVal: any): any {
     : childVal
 }
 
-export function mergeOptions(parent: ComponentOptions, child: ComponentOptions = {}, vm?: Vue) {
+export function mergeOptions(parent: ComponentOptions = {}, child: ComponentOptions = {}, vm?: Vue) {
   const options: ComponentOptions = {}
   let key: keyof ComponentOptions
   for(key in parent) {
