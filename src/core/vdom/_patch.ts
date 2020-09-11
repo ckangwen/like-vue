@@ -308,6 +308,8 @@ export function initPatch(modules: ModuleHooks[]) {
         }
       }
     }
+
+    return vnode.elm!
   }
 }
 

@@ -66,3 +66,5 @@ export function cached (fn: Function) {
     return hit || (cache[str] = fn(str))
   }
 }
+
+export const inBrowser = typeof window !== 'undefined'

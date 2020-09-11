@@ -84,12 +84,14 @@ export class Watcher<T extends withWatcher> {
           'For full control, use a function instead.',
         )
       }
+    } else {
+      this.getter = expOrFn
     }
 
     this.value = this.lazy ? undefined : this.get()
   }
 
-  get() {
+  get(this: any) {
     /**
      * Dep.target是一个Watcher，表示该Watcher正在访问依赖
      */

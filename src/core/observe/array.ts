@@ -1,5 +1,5 @@
 import { def } from '@/shared';
-import { Observer } from './observe';
+import { Observer } from './Observe';
 
 const arrayProto = Array.prototype
 

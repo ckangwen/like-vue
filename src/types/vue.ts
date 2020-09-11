@@ -16,7 +16,7 @@ type LiftcycleEnum =
   | 'errorCaptured'
 export type ComponentLifecycleOptions = Partial<Record<LiftcycleEnum, LifecycleHook>>
 
-type DefaultData = PlainObject<any> | ((this: any) => object);
+type DefaultData = PlainObject<any> | Function
 export type ComputedType = PlainObject<(Function | ComputedObjectType)>
 export type ComputedObjectType = {
   get?: () => void;
@@ -53,3 +53,6 @@ export type UserComponentOptions = {
   name?: string;
 } & ComponentLifecycleOptions
 
+export interface ComponentOptions extends UserComponentOptions {
+
+}

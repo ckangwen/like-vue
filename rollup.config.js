@@ -1,14 +1,14 @@
 import typescript from 'rollup-plugin-typescript';
 import replace from 'rollup-plugin-replace';
 import alias from 'rollup-plugin-alias'
+const path = require('path')
 
 
-const name = 'render-component-with-props'
-const generateVueFilepath = name => `./src/vue/${name}/example/`
+const filepath = './example/'
 export default {
-  input: generateVueFilepath(name) + 'index.ts',
+  input: filepath + 'index.ts',
   output: {
-    file: generateVueFilepath(name) + 'index.js',
+    file: filepath + 'index.js',
     format: 'iife'
   },
   plugins: [
@@ -18,7 +18,7 @@ export default {
     alias({
       resolve: ['.ts', '.js'],
       entries: [
-        { find: '@', replacement: 'src' }
+        { find: '@', replacement: path.join(__dirname, './src') }
       ]
     }),
     typescript({
