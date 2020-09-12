@@ -38,6 +38,7 @@ export class Dep {
    * */
   notify() {
     const subs = this.subs.slice()
+    console.log(subs);
     for (let i = 0, l = subs.length; i < l; i++) {
       subs[i].update()
     }

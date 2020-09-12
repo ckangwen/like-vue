@@ -86,7 +86,7 @@ export function initPatch(modules: ModuleHooks[]) {
   function createChildren(vnode: VNode, children: VNode[]) {
     if (Array.isArray(children)) {
       children.forEach(child => {
-        createElm(child, vnode.elm)
+        child &&　createElm(child, vnode.elm)
       })
     } else if (isPrimitive(vnode.text)) {
       // vnode作为父节点，将文本插入vnode.elm

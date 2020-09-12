@@ -30,6 +30,7 @@ export function initState(vm: Vue, options: ComponentOptions) {
   } else {
     observe(vm._data = {})
   }
+  options.methods && initMethods(vm)
 }
 
 
@@ -74,6 +75,25 @@ function initData(vm: Vue) {
   }
 
   observe(data)
+}
+
+function initMethods(vm: Vue) {
+  const { methods } = vm.$options
+  for(const key in methods) {
+    if (typeof methods[key] !== 'function') {
+      console.warn(
+        `Method "${key}" has type "${typeof methods[key]}" in the component definition. ` +
+        `Did you reference the function correctly?`
+      )
+    }
+
+    /**
+     * 因为方法在Vue示例中通过this调用
+     * 所以方法的作用域绑定到vm实例
+     * */
+    // TODO vm上不能定义任意类型的属性
+    (vm as any)[key] = typeof methods[key] !== 'function' ? noop : Function.prototype.bind.call(methods[key], vm)
+  }
 }
 
 const sharedPropertyDefinition: PropertyDescriptor = {

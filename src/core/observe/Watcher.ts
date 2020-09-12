@@ -40,6 +40,7 @@ export class Watcher<T extends withWatcher> {
   newDeps: Dep[];
   depIds: Set<any>;
   newDepIds: Set<any>;
+  expression: string
 
   constructor(
     vm: T,
@@ -87,6 +88,9 @@ export class Watcher<T extends withWatcher> {
     } else {
       this.getter = expOrFn
     }
+    this.expression = __DEV__
+      ? expOrFn.toString()
+      : ''
 
     this.value = this.lazy ? undefined : this.get()
   }
@@ -182,7 +186,10 @@ export class Watcher<T extends withWatcher> {
       }
     }
   }
-  evaluate() { }
+  evaluate() {
+    this.value = this.get()
+    this.dirty = false
+  }
 
   // TODO
   /**
