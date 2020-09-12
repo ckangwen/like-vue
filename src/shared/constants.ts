@@ -1,3 +1,5 @@
+import { VueAssetEnum } from '@/types'
+
 export const LIFECYCLE_HOOKS = [
   'beforeCreate',
   'created',
@@ -11,4 +13,8 @@ export const LIFECYCLE_HOOKS = [
   'deactivated',
   'errorCaptured',
   'serverPrefetch'
+]
+
+export const ASSET_TYPES: VueAssetEnum[] = [
+  'component',
 ]

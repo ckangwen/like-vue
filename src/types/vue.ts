@@ -1,4 +1,4 @@
-import { Vue } from '@/core';
+import { Vue } from '@/core/Vue';
 import { PlainObject } from './utils';
 
 export type VueCtor = typeof Vue
@@ -49,6 +49,8 @@ export type UserComponentOptions = {
   [key: string]: any
 } & ComponentLifecycleOptions
 
+export type ExtendAPIOption = Omit<UserComponentOptions, 'el'>
+
 export interface ComponentOptions extends UserComponentOptions {
 
 }
@@ -59,6 +61,10 @@ export type VuePluginOptions = {
   install: VuePluginInstallType
 } | VuePluginInstallType
 
+export type VueAssetEnum = 'component'
+
 export type VuePlugin = (plugin: VuePluginOptions, ...args: any[]) => VueCtor
 
 export type VueMixin = (mixin: ComponentOptions) => VueCtor
+
+export type VueExtend = (options: ExtendAPIOption) => VueCtor

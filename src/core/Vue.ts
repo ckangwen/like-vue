@@ -1,14 +1,16 @@
 import { Watcher } from '@/core/observe';
-import { ComponentOptions, VuePlugin, VueMixin, VuePluginOptions } from '@/types'
+import { ComponentOptions, VuePlugin, VueExtend, VueMixin, VuePluginOptions } from '@/types'
 import { VNode, patch } from '@/core/vdom';
 import { initGlobalAPI } from './global-api/index';
+import { VueCtor } from '../types/vue';
 import {
   callHook,
   initState,
   initRender,
   initEvent,
   initLifecycle,
-  mergeOptions
+  mergeOptions,
+  resolveConstructorOptions
 } from '@/core/helper';
 import {
   __DEV__,
@@ -20,14 +22,19 @@ import {
 let uid = 0
 
 export class Vue {
+  // constructor(options: ComponentOptions): Vue
   static cid: number
   static options: ComponentOptions
   static config?: any;
   static use: VuePlugin
   static mixin:  VueMixin
+  static extend:  VueExtend
   static _installedPlugins: VuePluginOptions[] = []
+  static component: Function
+  static super?: VueCtor
+  static superOptions?: ComponentOptions
+  static extendOptions?: ComponentOptions
   options?: ComponentOptions
-  super?: Vue
   _watcher?: Watcher<Vue>
   _watchers?: Watcher<Vue>[]
   _vnode: VNode | null = null
@@ -57,7 +64,7 @@ export class Vue {
      * 与全局options进行合并
      * 例如Vue.mixin()
      * */
-    this.$options = mergeOptions(Vue.options, options, this)
+    this.$options = mergeOptions(resolveConstructorOptions((this as any).constructor), options, this)
 
 
     this.$el = null
@@ -67,7 +74,7 @@ export class Vue {
     initEvent(this)
     initRender(this)
     callHook(this, 'beforeCreate');
-    initState(this, options)
+    initState(this)
     callHook(this, 'created');
   }
 

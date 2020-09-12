@@ -1,6 +1,7 @@
+import { Vue } from '@/core/Vue'
+import { VNode, createTextVNode, createEmptyVNode } from './vnode'
+import { globalConfig } from '@/core/config'
 import { VNodeData, VNodeChildren } from '@/types'
-import { VNode, createTextVNode, createEmptyVNode } from './vnode';
-import { Vue } from '@/core'
 import {
   isHTMLTag,
   isDef,
@@ -13,8 +14,8 @@ export function createElement (context: Vue, tag: string, data: VNodeData | null
 export function createElement (context: Vue, tag: string, children?: VNodeChildren): VNode
 export function createElement (context: Vue, tag: string, data: VNodeData | null, children?: VNodeChildren): VNode
 export function createElement(
-  context?: any,
-  tag?: any,
+  context?: Vue,
+  tag?: string,
   data?: any,
   children?: any
 ): VNode | null | undefined {
@@ -37,6 +38,8 @@ export function createElement(
         data,
         children
       })
+    } else {
+      globalConfig.createElement && globalConfig.createElement(context, tag, data, children)
     }
   }
 

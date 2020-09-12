@@ -1,4 +1,6 @@
-import { Vue, observe, createElement } from '@/core'
+import { Vue} from '@/core/Vue'
+import { observe } from '@/core/observe'
+import { createElement } from '@/core/vdom'
 import { ComponentOptions, LiftcycleEnum } from '@/types'
 import {
   isPlainObject,
@@ -21,7 +23,8 @@ export function initRender(vm: Vue) {
   vm.$createElement = (a: any, b: any, c: any) => createElement(vm, a, b, c)
 }
 
-export function initState(vm: Vue, options: ComponentOptions) {
+export function initState(vm: Vue) {
+  const options = vm.$options
   vm._watcher = undefined
   vm._watchers = []
 

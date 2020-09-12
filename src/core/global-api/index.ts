@@ -1,8 +1,10 @@
-import { globalConfig } from '@/core';
+import { globalConfig } from '@/core/config'
 import { VueCtor } from '@/types'
-import { __DEV__, deepset } from '@/shared';
-import { initUse } from './use';
-import { initMixin } from './mixins';
+import { __DEV__, deepset, ASSET_TYPES  } from '@/shared'
+import { initUse } from './use'
+import { initMixin } from './mixins'
+import { initExtend } from './extend'
+import { initAssetRegisters } from './assets'
 
 function setConfig(key: string, value: any) {
   if (key === 'set') {
@@ -14,6 +16,9 @@ function setConfig(key: string, value: any) {
 
 export function initGlobalAPI(Vue: VueCtor) {
   Vue.options = Object.create(null)
+  ASSET_TYPES.forEach(type => {
+    Vue.options[type + 's'] = Object.create(null)
+  })
 
   const configDef: any = {}
   configDef.get = () => { return { ...globalConfig, set: setConfig } }
@@ -27,6 +32,8 @@ export function initGlobalAPI(Vue: VueCtor) {
 
   Object.defineProperty(Vue, 'config', configDef)
 
+  initAssetRegisters(Vue)
   initUse(Vue)
   initMixin(Vue)
+  initExtend(Vue)
 }
