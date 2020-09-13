@@ -1,5 +1,6 @@
 import { Vue } from '@/core/Vue';
 import { PlainObject } from './utils';
+import { VNode } from '../core/vdom/vnode';
 
 export type VueCtor = typeof Vue
 
@@ -52,7 +53,10 @@ export type UserComponentOptions = {
 export type ExtendAPIOption = Omit<UserComponentOptions, 'el'>
 
 export interface ComponentOptions extends UserComponentOptions {
-
+  parent?: any
+  _isComponent?: boolean
+  _parentVnode?: VNode
+  [key: string]: any
 }
 
 export type VuePluginInstallType = (Vue: VueCtor, ...args: any[]) => void

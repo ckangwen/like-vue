@@ -3,6 +3,7 @@ import { ComponentOptions, VuePlugin, VueExtend, VueMixin, VuePluginOptions } fr
 import { VNode, patch } from '@/core/vdom';
 import { initGlobalAPI } from './global-api/index';
 import { VueCtor } from '../types/vue';
+import { globalConfig } from './config';
 import {
   callHook,
   initState,
@@ -47,7 +48,7 @@ export class Vue {
   _isMounted: boolean = false
 
   $el: Element | null
-  $options: ComponentOptions
+  $options: ComponentOptions = {}
   $children?: any[]
   $createElement?: Function;
   $vnode: VNode | null = null
@@ -64,7 +65,11 @@ export class Vue {
      * 与全局options进行合并
      * 例如Vue.mixin()
      * */
-    this.$options = mergeOptions(resolveConstructorOptions((this as any).constructor), options, this)
+    if (globalConfig.setOptions) {
+      globalConfig.setOptions(this, options)
+    } else {
+      this.$options = mergeOptions(resolveConstructorOptions((this as any).constructor), options, this)
+    }
 
 
     this.$el = null
@@ -111,19 +116,13 @@ export class Vue {
 
   $mount(el?: string | Element | undefined, hydrating?: boolean) {
     el = el && inBrowser ? query(el) : undefined
-    if (!el) {
-      __DEV__ && console.warn(
-        `${el} does not exist`
-      )
-      return this
-    }
     if (el === document.body || el === document.documentElement) {
       __DEV__ && console.warn(
         `Do not mount Vue to <html> or <body> - mount to normal elements instead.`
       )
       return this
     }
-    this.$el = el
+    this.$el = el || null
 
     /**
      * render watcher

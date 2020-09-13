@@ -1,4 +1,4 @@
-import { Vue } from '@/core'
+import { Vue } from '@/core/Vue'
 
 new Vue({
   data() {

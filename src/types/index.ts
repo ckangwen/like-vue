@@ -1,4 +1,5 @@
 export * from './observe'
 export * from './patch-hook'
+export * from './utils'
 export * from './vnode'
 export * from './vue'

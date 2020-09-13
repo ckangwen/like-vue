@@ -3,6 +3,7 @@ export type GlobalConfig = {
     [key in string]?: Function
   }
   createElement?: Function
+  setOptions?: Function
 }
 
 export const globalConfig: GlobalConfig = {

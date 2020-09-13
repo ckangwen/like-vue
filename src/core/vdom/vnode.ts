@@ -1,7 +1,11 @@
+import { Vue } from '@/core/Vue'
 import {
   VNodeData,
   VNodeChildren,
-  Key
+  Key,
+  VueCtor,
+  PlainObject,
+  On
 } from '@/types';
 
 type VNodeCtorParams = {
@@ -12,7 +16,18 @@ type VNodeCtorParams = {
   elm?: Node;
   key?: string | number;
   context?: any;
+  componentOptions?: VNodeAdditionalOptions
 }
+
+type VNodeAdditionalOptions = {
+  Ctor?: VueCtor
+  tag?: string
+  children?: VNode[]
+  parent?: Vue
+  propsData?: PlainObject<any>
+  listeners?: On
+}
+
 
 export class VNode {
   tag: string;
@@ -23,6 +38,8 @@ export class VNode {
   context: any;
   isComment: boolean;
   key?: Key
+  componentInstance: any
+  componentOptions: VNodeAdditionalOptions = {}
 
   constructor({
     context,
@@ -31,6 +48,7 @@ export class VNode {
     children = [],
     text = '',
     elm,
+    componentOptions = {}
   }: VNodeCtorParams) {
     this.tag = tag
     this.data = data
@@ -39,6 +57,8 @@ export class VNode {
     this.elm = elm
     this.context = context
     this.isComment = false
+    this.componentInstance = null
+    this.componentOptions = componentOptions
   }
 }
 

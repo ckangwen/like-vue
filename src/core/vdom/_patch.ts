@@ -77,7 +77,7 @@ export function initPatch(modules: ModuleHooks[]) {
     for (; startIdx <= endIdx; ++startIdx) {
       const ch = vnodes[startIdx]
       if (ch != null) {
-        domApi.insertBefore(parentEl, createElm(ch), before)
+        domApi.insertBefore(parentEl, createElm(ch)!, before)
       }
     }
   }
@@ -94,14 +94,48 @@ export function initPatch(modules: ModuleHooks[]) {
     }
   }
 
+  /**
+   * 初始化组件，调用init hook
+   * @param{VNode} vnode 组件的VNode
+   */
+  function initComponent(vnode: VNode) {
+    /* vnode.componentInstance表示组件渲染后的DOM */
+    vnode.elm = vnode.componentInstance.$el // 父级元素
+    if (isPatchable(vnode)) {
+      callPatchHook([cbs, (vnode.data.hook || {})], 'create', emptyVNode, vnode)
+    } else {
+
+    }
+  }
+
+  function needRenderComponent(
+    vnode: VNode,
+    parentEl: Node,
+    refEl?: Node
+  ) {
+    if (vnode.componentInstance) { // 是一个组件
+      initComponent(vnode)
+      insertVnode(parentEl, vnode.elm!, refEl)
+      return true
+    }
+  }
+
   function createElm(
     vnode: VNode,
     parentEl?: Node,
     refEl?: Node
-  ): Node {
-    let { data, tag } = vnode
+  ): Node | null {
+
+    let { data = {}, tag } = vnode
     let children = vnode.children as VNode[]
-    callPatchHook([cbs, (data.hook || {})], 'pre')
+    callPatchHook([cbs, (data.hook || {})], 'pre', vnode, parentEl, refEl)
+
+    callPatchHook((data.hook || {}), 'init', vnode, false)
+
+    if (parentEl && needRenderComponent(vnode, parentEl, refEl)) {
+      return null
+    }
+
 
     if (tag) {
       // 创建真实DOM
@@ -113,9 +147,7 @@ export function initPatch(modules: ModuleHooks[]) {
        * 传递的参数为：空VNode和当前VNode
        * cbs是内部的回调，主要是完善DOM相关的属性，例如class、style、event等
        */
-      if (data) {
-        callPatchHook([cbs, (data.hook || {})], 'create', emptyVNode, vnode)
-      }
+      callPatchHook([cbs, (data.hook || {})], 'create', emptyVNode, vnode)
     } else if (vnode.isComment) {
       vnode.elm = domApi.createComment(vnode.text)
     } else {
@@ -191,13 +223,13 @@ export function initPatch(modules: ModuleHooks[]) {
         // 如果下标不存在，说明这个节点是新创建的
         idxInOld = oldKeyToIdx[newStartVnode.key as string]
         if (!idxInOld) { // 新增节点，插入到newStartVnode的前面
-          domApi.insertBefore(parentEl, createElm(newStartVnode), oldStartVnode.elm!)
+          domApi.insertBefore(parentEl, createElm(newStartVnode)!, oldStartVnode.elm!)
         } else {
           // 如果是已经存在的节点 找到需要移动位置的节点
           elmToMove = oldCh[idxInOld]
           // 虽然 key 相同了，但是 seletor 不相同，需要调用 createElm 来创建新的 dom 节点
           if (sameVnode(elmToMove, newStartVnode)) {
-            domApi.insertBefore(parentEl, createElm(newStartVnode), oldStartVnode.elm!)
+            domApi.insertBefore(parentEl, createElm(newStartVnode)!, oldStartVnode.elm!)
           } else {
             // 否则调用 patchVnode 对旧 vnode 做更新
             patchVnode(elmToMove, newStartVnode, insertedVnodeQueue)

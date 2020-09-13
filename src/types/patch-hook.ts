@@ -1,6 +1,6 @@
 import { VNode } from '@/core/vdom'
 
-export type PreHook = () => any
+export type PreHook = (vnode: VNode, parentEl: Node, refEl: Node) => any
 export type InitHook = (vnode: VNode, hydrating?: boolean) => any
 export type CreateHook = (emptyVNode: VNode, vnode: VNode) => any
 export type InsertHook = (vnode: VNode) => any

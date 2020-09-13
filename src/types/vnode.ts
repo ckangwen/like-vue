@@ -14,7 +14,7 @@ export type Key = string | number
 type NativeOn = {
   [N in keyof HTMLElementEventMap]?: (e: HTMLElementEventMap[N]) => void
 }
-type On = NativeOn & {
+export type On = NativeOn & {
   [event: string]: EventListener
 }
 export type VNodeStyle = CssBodyDeclaration

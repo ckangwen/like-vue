@@ -8,11 +8,12 @@ import {
   __DEV__,
   isPrimitive
 } from '@/shared'
+import { type } from 'os'
 
-export function createElement (context: Vue, tag: string): VNode
-export function createElement (context: Vue, tag: string, data: VNodeData | null): VNode
-export function createElement (context: Vue, tag: string, children?: VNodeChildren): VNode
-export function createElement (context: Vue, tag: string, data: VNodeData | null, children?: VNodeChildren): VNode
+export function createElement(context: Vue, tag: string): VNode
+export function createElement(context: Vue, tag: string, data: VNodeData | null): VNode
+export function createElement(context: Vue, tag: string, children?: VNodeChildren): VNode
+export function createElement(context: Vue, tag: string, data: VNodeData | null, children?: VNodeChildren): VNode
 export function createElement(
   context?: Vue,
   tag?: string,
@@ -30,19 +31,18 @@ export function createElement(
   children = normalizeChildren(children) as VNode[]
 
   let vnode
-  if (typeof tag === 'string') {
-    if (isHTMLTag(tag)) {
-      vnode = new VNode({
-        context,
-        tag,
-        data,
-        children
-      })
-    } else {
-      globalConfig.createElement && globalConfig.createElement(context, tag, data, children)
+  if (typeof tag === 'string' && isHTMLTag(tag)) {
+    vnode = new VNode({
+      context,
+      tag,
+      data,
+      children
+    })
+  } else {
+    if (globalConfig.createElement) {
+      vnode = globalConfig.createElement(context, tag, data, children)
     }
   }
-
   if (isDef(vnode)) {
     return vnode
   } else {
@@ -55,7 +55,7 @@ export function createElement(
  */
 function normalizeChildren(children: VNodeChildren) {
   return isPrimitive(children)
-    ? [ createTextVNode(children) ]
+    ? [createTextVNode(children)]
     : Array.isArray(children)
       ? normalizeArrayChildren(children)
       : undefined
