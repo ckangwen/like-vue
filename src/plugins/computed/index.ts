@@ -15,7 +15,7 @@ type ComputedType = {
 } | Function
 
 
-function computedMergeSStrategy(parent: Object, child: Object) {
+function computedMergeStrategy(parent: Object, child: Object) {
   if (!parent) return child
   const res = Object.create(null)
   extend(res, parent)
@@ -102,10 +102,10 @@ function createGetterInvoker(fn: Function) {
 
 export default {
   install(Vue: VueCtor) {
-    Vue.config.set('optionMergeStrategies.computed', computedMergeSStrategy)
+    Vue.config.set('optionMergeStrategies.computed', computedMergeStrategy)
 
     Vue.mixin({
-      beforeCreate(this: Vue) {
+      created(this: Vue) { // created生命周期之后可以访问到data中的值
         const vm: Vue = this
         const { computed } = this.$options
         initComputed(vm, computed)

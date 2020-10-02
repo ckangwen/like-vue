@@ -55,7 +55,6 @@ export class Vue {
 
   __patch__ = patch
 
-
   constructor(options: ComponentOptions = {}) {
     this._uid = ++uid
     this._self = this

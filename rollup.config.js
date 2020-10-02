@@ -4,7 +4,7 @@ import alias from 'rollup-plugin-alias'
 const path = require('path')
 
 
-const filepath = './examples/components/'
+const filepath = './examples/watch/'
 export default {
   input: filepath + 'index.ts',
   output: {
