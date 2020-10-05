@@ -45,6 +45,7 @@ function setOptions(vm: Vue, options: ComponentOptions) {
     const parentVnode = opts._parentVnode = options._parentVnode!
 
     const componentOptions = parentVnode.componentOptions
+    opts._parentListeners = options.listeners
     /* 初始化option.propsData */
     opts.propsData = componentOptions.propsData
     // opts._parentListeners = vnodeComponentOptions.listeners

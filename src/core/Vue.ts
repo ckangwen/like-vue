@@ -17,7 +17,8 @@ import {
   __DEV__,
   noop,
   query,
-  inBrowser
+  inBrowser,
+  isPromise
 } from '@/shared'
 
 let uid = 0
@@ -141,6 +142,87 @@ export class Vue {
 
     this._isMounted = true
     callHook(this, 'mounted')
+  }
+
+  /* event */
+  $on(event: string | string[], fn?: Function) {
+    const vm: Vue = this
+
+    if (Array.isArray(event)) {
+      event.forEach(e => {
+        vm.$on(e, fn)
+      })
+    } else {
+      if (!vm._events[event]) {
+        vm._events[event] = []
+      }
+      vm._events[event].push(fn)
+    }
+
+    return vm
+  }
+  $off(event?: string | string[], fn?: Function) {
+    const vm: Vue = this
+    if (!event) {
+      vm._events = Object.create(null)
+      return vm
+    }
+
+    if (Array.isArray(event)) {
+      event.forEach(e => {
+        vm.$off(e, fn)
+      })
+    } else {
+      const cbs = vm._events[event]
+      if (!cbs) {
+        return vm
+      }
+
+      /* 没有指定回调函数，则清空回调列表 */
+      if (!fn) {
+        vm._events[event] = null
+        return vm
+      }
+
+      /* 删除指定的回调函数 */
+      let cb
+      let i = cbs.length
+      while (i--) {
+        cb = cbs[i]
+        if (cb === fn || cb.fn === fn) {
+          cbs.splice(i, 1)
+          break
+        }
+      }
+    }
+
+    return vm
+  }
+  $once(event: string, fn: Function) {
+    const vm: Vue = this
+    function on () {
+      vm.$off(event, on)
+      fn.apply(vm, arguments)
+    }
+    on.fn = fn
+    vm.$on(event, on)
+    return vm
+  }
+  $emit(event: string, ...args: any[]) {
+    const vm: Vue = this
+    let cbs: Function[] = vm._events[event]
+    if (cbs) {
+      cbs = Array.isArray(cbs) ? cbs.length > 1 ? [...cbs] : cbs : [ cbs ]
+      cbs.forEach(cb => {
+        try {
+          args ? cb.apply(vm, args) : cb.call(vm)
+        } catch (error) {
+          console.error(`event handler for "${event}" (Promise/async)`, error)
+        }
+      })
+    }
+
+    return vm
   }
 }
 

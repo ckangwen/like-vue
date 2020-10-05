@@ -3,6 +3,7 @@ import { ModuleHooks, ModuleHookEnum, VueCtor, On, ComponentOptions, PlainObject
 import { VNode } from '@/core/vdom/vnode'
 import { isObject, __DEV__ } from '@/shared'
 import { extractPropsFromVNodeData } from './helper/extra-props';
+import { updateComponentListeners } from '@/core/helper'
 
 export function createComponent(
   Ctor: any,
@@ -34,6 +35,7 @@ export function createComponent(
   const propsData = extractPropsFromVNodeData(vnodeData, Ctor, tag)
   // TODO data.on，组件事件
 
+  const listeners = vnodeData.on
 
   /* 调用生成组件的必要的hook，在渲染vnode的过程中调用 */
   installComponentHooks(vnodeData)
@@ -50,7 +52,8 @@ export function createComponent(
       Ctor,
       tag,
       children,
-      propsData
+      propsData,
+      listeners
     }
   })
 
@@ -60,7 +63,7 @@ export function createComponent(
 const componentVNodeHooks: ModuleHooks = {
   init(vnode: VNode, hydrating?: boolean) {
     /* 生成组件实例 */
-    const child = vnode.componentInstance = createComponentInstance(vnode, vnode.componentOptions.parent, vnode.componentOptions.Ctor!)
+    const child = vnode.componentInstance = createComponentInstance(vnode, vnode.componentOptions)
     /* 渲染为真实DOM */
     child.$mount(hydrating ? (vnode.elm as Element) : undefined, hydrating)
   },
@@ -69,6 +72,9 @@ const componentVNodeHooks: ModuleHooks = {
     const { listeners, propsData, children } = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance
     child.$options._parentVnode = vnode
+    const oldListeners = child.$options._parentListeners
+    updateComponentListeners(child, listeners, oldListeners)
+
     // update vm's placeholder node without re-render
     child.$vnode = vnode
 
@@ -96,16 +102,15 @@ const componentVNodeHooks: ModuleHooks = {
 
 function createComponentInstance(
   vnode: VNode,
-  parent: any,
-  Ctor: VueCtor
+  componentOptions: any
 ): Vue {
   const options: ComponentOptions = {
     _isComponent: true,
     _parentVnode: vnode,
-    parent
+    ...componentOptions
   }
 
-  return new Ctor(options)
+  return new componentOptions.Ctor(options)
 }
 
 function installComponentHooks(data: VNodeData) {

@@ -9,9 +9,18 @@ import {
   isReserved,
   noop,
 } from '@/shared'
+import { updateComponentListeners } from './events'
 
 export function initEvent(vm: Vue) {
   vm._events = Object.create(null)
+
+  // 在组件初始化时，$options._parentListeners将会被赋值，根据与该组件的data.on
+  const listeners = vm.$options._parentListeners
+  // init parent attached events
+  if (listeners) {
+    // prepatch时同样会执行updateComponentListeners
+    updateComponentListeners(vm, listeners)
+  }
 }
 
 export function initLifecycle(vm: Vue) {
