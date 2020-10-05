@@ -7,7 +7,7 @@ export function remove<T extends any>(arr: T[], item: T) {
   }
 }
 
-export function noop() {}
+export function noop(...args: any[]) {}
 
 const camelizeRE = /-(\w)/g
 export const camelize = (str: string): string => {

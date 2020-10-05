@@ -48,6 +48,7 @@ export class Vue {
   _isMounted: boolean = false
 
   $el: Element | null
+  $parent: Vue | null = null
   $options: ComponentOptions = {}
   $children?: any[]
   $createElement?: Function;

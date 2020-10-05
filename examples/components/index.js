@@ -40,7 +40,12 @@
           }
       }
   }
-  function noop() { }
+  function noop() {
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+          args[_i] = arguments[_i];
+      }
+  }
   var camelizeRE = /-(\w)/g;
   var camelize = function (str) {
       return str.replace(camelizeRE, function (_, c) { return (c ? c.toUpperCase() : ''); });
@@ -764,7 +769,7 @@
           var children = vnode.children;
           callPatchHook([cbs, (data.hook || {})], 'pre', vnode, parentEl, refEl);
           callPatchHook((data.hook || {}), 'init', vnode, false);
-          if (parentEl && needRenderComponent(vnode, parentEl, refEl)) {
+          if (needRenderComponent(vnode, parentEl, refEl)) {
               return null;
           }
           if (tag) {
@@ -1372,6 +1377,8 @@
   }
   function initLifecycle(vm) {
       vm._isMounted = false;
+      var parent = vm.$options.parent;
+      vm.$parent = parent;
   }
   function initRender(vm) {
       vm._vnode = null;
@@ -1640,6 +1647,7 @@
           if (options === void 0) { options = {}; }
           this._vnode = null;
           this._isMounted = false;
+          this.$parent = null;
           this.$options = {};
           this.$vnode = null;
           this.__patch__ = patch;
@@ -1862,6 +1870,146 @@
       }
   }
 
+  var uid$3 = 0;
+  var Vue$1 = /** @class */ (function () {
+      function Vue(options) {
+          if (options === void 0) { options = {}; }
+          this._vnode = null;
+          this._isMounted = false;
+          this.$parent = null;
+          this.$options = {};
+          this.$vnode = null;
+          this.__patch__ = patch;
+          this._uid = ++uid$3;
+          this._self = this;
+          this.$children = [];
+          /**
+           * 与全局options进行合并
+           * 例如Vue.mixin()
+           * */
+          // console.log(options, globalConfig);
+          if (globalConfig.setOptions && options._isComponent) {
+              globalConfig.setOptions(this, options);
+          }
+          else {
+              this.$options = mergeOptions(resolveConstructorOptions(this.constructor), options, this);
+          }
+          this.$el = null;
+          initLifecycle(this);
+          initEvent(this);
+          initRender(this);
+          callHook(this, 'beforeCreate');
+          initState(this);
+          callHook(this, 'created');
+      }
+      Vue.prototype._render = function () {
+          var render = this.$options.render;
+          var vnode = render && render.call(this, this.$createElement);
+          if (Array.isArray(vnode) && vnode.length === 1) {
+              vnode = vnode[0];
+          }
+          return vnode;
+      };
+      Vue.prototype._update = function (vnode, hydrating) {
+          /**
+           * _vnode记录当前DOM映射的VNode
+           * 此时的_vnode还没有更新，所以指代的是更新前的vnode
+           *  */
+          var prevVnode = this._vnode;
+          /**
+           * 更新_vnode
+           * */
+          this._vnode = vnode;
+          if (!prevVnode) {
+              // initial render
+              this.$el = this.__patch__(this.$el, vnode);
+          }
+          else {
+              // updates
+              this.$el = this.__patch__(prevVnode, vnode);
+          }
+      };
+      Vue.prototype.$mount = function (el, hydrating) {
+          var _this = this;
+          el = el && inBrowser ? query(el) : undefined;
+          if (el === document.body || el === document.documentElement) {
+               console.warn("Do not mount Vue to <html> or <body> - mount to normal elements instead.");
+              return this;
+          }
+          this.$el = el || null;
+          /**
+           * render watcher
+           * 观察渲染函数中状态(state，observer)的变化，如果变化则触发更新(_update)
+           * 之所以能够观察到渲染函数中的状态是因为Watcher需要监听的表达式是一个函数，如果是一个函数，则其中所有被访问的对象都会被监听
+           */
+          new Watcher(this, function () {
+              _this._update(_this._render(), hydrating);
+          }, noop, undefined, true);
+          this._isMounted = true;
+          callHook(this, 'mounted');
+      };
+      Vue._installedPlugins = [];
+      return Vue;
+  }());
+  initGlobalAPI(Vue$1);
+
+  function initProps(vm, propsOptions) {
+      /* propsData保存的是通过父组件或用户传递的真实props数据 */
+      var propsData = vm.$options.propsData || {};
+      var props = vm._props = {};
+      /* 缓存当前实例的所有props的key */
+      var keys = vm.$options._propKeys = [];
+      /* 没有父节点则表示是根节点 */
+      var isRoot = !vm.$parent;
+      var _loop_1 = function (key) {
+          keys.push(key);
+          // TODO 校验props【validateProp(key, propsOptions, propsData, vm)】
+          var value = propsData[key];
+          {
+              var hyphenatedKey = hyphenate(key);
+              /* 是否是保留字段 */
+              if (isReservedAttribute(hyphenatedKey) || isHTMLTag(hyphenatedKey)) {
+                  console.warn("\"" + hyphenatedKey + "\" is a reserved attribute and cannot be used as component prop.");
+              }
+              defineReactive(props, key, value, function () {
+                  if (!isRoot) {
+                      /* 由于父组件重新渲染的时候会重写prop的值，所以应该直接使用prop来作为一个data或者计算属性的依赖 */
+                      console.warn("Avoid mutating a prop directly since the value will be " +
+                          "overwritten whenever the parent component re-renders. " +
+                          "Instead, use a data or computed property based on the prop's " +
+                          ("value. Prop being mutated: \"" + key + "\""));
+                  }
+              });
+          }
+          if (!(key in vm)) {
+              // 访问vm[key] 等同于 访问vm._props[key]
+              proxy$1(vm, '_props', key);
+          }
+      };
+      for (var key in propsOptions) {
+          _loop_1(key);
+      }
+  }
+  var isReservedAttribute = function (key) { return ['key', 'ref', 'slot', 'slot-scope', 'is'].indexOf(key) > -1; };
+  var sharedPropertyDefinition$1 = {
+      enumerable: true,
+      configurable: true,
+      get: noop,
+      set: noop
+  };
+  /**
+   * 在target上设置一个代理，实现通过访问target.key来访问target.sourceKey.key的目的
+   */
+  function proxy$1(target, sourceKey, key) {
+      sharedPropertyDefinition$1.get = function proxyGetter() {
+          return this[sourceKey][key];
+      };
+      sharedPropertyDefinition$1.set = function proxySetter(val) {
+          this[sourceKey][key] = val;
+      };
+      Object.defineProperty(target, key, sharedPropertyDefinition$1);
+  }
+
   function resolveGlobalComponents(components, tag) {
       if (hasOwn(components, tag)) {
           return components[tag];
@@ -1912,50 +2060,44 @@
       install: function (Vue) {
           Vue.config.set('createElement', createElement$2);
           Vue.config.set('setOptions', setOptions);
+          Vue.mixin({
+              created: function () {
+                  var vm = this;
+                  if (vm.$options.props) {
+                      initProps(vm, vm.$options.props);
+                  }
+              }
+          });
       }
   };
 
   Vue.use(componentsPlugin);
   Vue.component('hello-text', {
-      data: function () {
-          return {
-              text: 'hello'
-          };
+      props: {
+          text: String
       },
       render: function (h) {
-          var text = this.text;
+          var _a = this.text, text = _a === void 0 ? 'defaultText' : _a;
           return (h('p', text));
       }
   });
-  var HelloText = {
-      data: function () {
-          return {
-              text: 'hello'
-          };
-      },
-      render: function (h) {
-          var text = this.text;
-          return (h('p', text));
-      }
-  };
   new Vue({
       data: function () {
           return {
               text: 'text'
           };
       },
-      props: {
-          some: String
+      methods: {
+          changeText: function () {
+              this.text = this.text + '--';
+          }
       },
       render: function (h) {
-          var text = this.text;
-          return h(HelloText);
-          // return h(
-          //   'div', {}, [
-          //   h('hello-text'),
-          //   text
-          // ]
-          // )
+          var _a = this, text = _a.text, changeText = _a.changeText;
+          return h('div', {}, [
+              h('hello-text', { attrs: { text: text } }),
+              h('button', { on: { click: changeText } }, '改变text')
+          ]);
       }
   })
       .$mount('#app');

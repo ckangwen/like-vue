@@ -3,6 +3,7 @@ import { isHTMLTag, hasOwn, camelize, capitalize, __DEV__ } from '@/shared'
 import { VNodeData, VueCtor, ComponentOptions } from '@/types';
 import { VNode } from '@/core/vdom/vnode'
 import { createComponent } from './createComponent';
+import { initProps } from './props';
 
 
 function resolveGlobalComponents(components: any[], tag: string) {
@@ -62,5 +63,14 @@ export default {
   install(Vue: VueCtor) {
     Vue.config.set('createElement', createElement)
     Vue.config.set('setOptions', setOptions)
+
+    Vue.mixin({
+      created(this: Vue) {
+        const vm = this
+        if(vm.$options.props) {
+          initProps(vm as any, vm.$options.props)
+        }
+      }
+    })
   }
 }

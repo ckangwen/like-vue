@@ -5,51 +5,37 @@ import componentsPlugin from '@/plugins/components'
 Vue.use(componentsPlugin)
 
 Vue.component('hello-text', {
-  data() {
-    return {
-      text: 'hello'
-    }
+  props: {
+    text: String
   },
   render(h: Function) {
-    const { text } = this
+    const { text = 'defaultText' } = this
     return (
       h('p', text)
     )
   }
 })
-const HelloText = {
-  data() {
-    return {
-      text: 'hello'
-    }
-  },
-  render(h: Function) {
-    const { text } = this
-    return (
-      h('p', text)
-    )
-  }
-} as any
 
 
 new Vue({
   data() {
     return {
-      text: 'text'
+      text: 'text from parent data'
     }
   },
-  props: {
-    some: String
+  methods: {
+    changeText() {
+      this.text = this.text + '--'
+    }
   },
   render(this: any, h: Function) {
-    const { text } = this
-    return h(HelloText)
-    // return h(
-    //   'div', {}, [
-    //   h('hello-text'),
-    //   text
-    // ]
-    // )
+    const { text, changeText } = this
+    return h(
+      'div', {}, [
+      h('hello-text', { attrs: { text } }),
+      h('button', { on: { click: changeText } }, '改变text')
+    ]
+    )
   }
 })
   .$mount('#app')
