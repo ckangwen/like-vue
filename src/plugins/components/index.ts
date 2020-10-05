@@ -29,6 +29,8 @@ function createElement(context: Vue, tag: string, data: VNodeData, children: VNo
     if (CompOptions) {
       vnode = createComponent(CompOptions, data, context, (children as VNode[]), tag)
     }
+  } else if (typeof tag === 'object') {
+    vnode = createComponent(tag, data, context, children)
   }
   return vnode
 }
@@ -39,7 +41,7 @@ function setOptions(vm: Vue, options: ComponentOptions) {
     const opts: ComponentOptions = vm.$options = Object.create((vm.constructor as VueCtor).options)
     opts.parent = options.parent
 
-    const parentVnode = options._parentVnode!
+    const parentVnode = opts._parentVnode = options._parentVnode!
 
     const componentOptions = parentVnode.componentOptions
     /* 初始化option.propsData */
@@ -51,6 +53,7 @@ function setOptions(vm: Vue, options: ComponentOptions) {
     if (options.render) {
       opts.render = options.render
     }
+    vm.$options = opts
   }
 }
 

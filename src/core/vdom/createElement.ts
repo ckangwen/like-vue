@@ -43,6 +43,7 @@ export function createElement(
       vnode = globalConfig.createElement(context, tag, data, children)
     }
   }
+
   if (isDef(vnode)) {
     return vnode
   } else {

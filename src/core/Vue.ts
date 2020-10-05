@@ -3,7 +3,7 @@ import { ComponentOptions, VuePlugin, VueExtend, VueMixin, VuePluginOptions } fr
 import { VNode, patch } from '@/core/vdom';
 import { initGlobalAPI } from './global-api/index';
 import { VueCtor } from '../types/vue';
-import { globalConfig } from './config';
+import { globalConfig } from '@/core/config';
 import {
   callHook,
   initState,
@@ -64,7 +64,8 @@ export class Vue {
      * 与全局options进行合并
      * 例如Vue.mixin()
      * */
-    if (globalConfig.setOptions) {
+    // console.log(options, globalConfig);
+    if (globalConfig.setOptions && options._isComponent) {
       globalConfig.setOptions(this, options)
     } else {
       this.$options = mergeOptions(resolveConstructorOptions((this as any).constructor), options, this)

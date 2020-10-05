@@ -17,6 +17,19 @@ Vue.component('hello-text', {
     )
   }
 })
+const HelloText = {
+  data() {
+    return {
+      text: 'hello'
+    }
+  },
+  render(h: Function) {
+    const { text } = this
+    return (
+      h('p', text)
+    )
+  }
+} as any
 
 
 new Vue({
@@ -30,12 +43,13 @@ new Vue({
   },
   render(this: any, h: Function) {
     const { text } = this
-    return h(
-      'div', {}, [
-      h('hello-text'),
-      text
-    ]
-    )
+    return h(HelloText)
+    // return h(
+    //   'div', {}, [
+    //   h('hello-text'),
+    //   text
+    // ]
+    // )
   }
 })
   .$mount('#app')

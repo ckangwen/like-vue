@@ -182,7 +182,6 @@
        * */
       Dep.prototype.notify = function () {
           var subs = this.subs.slice();
-          console.log(subs);
           for (var i = 0, l = subs.length; i < l; i++) {
               subs[i].update();
           }
@@ -1651,7 +1650,11 @@
            * 与全局options进行合并
            * 例如Vue.mixin()
            * */
-          {
+          // console.log(options, globalConfig);
+          if (globalConfig.setOptions && options._isComponent) {
+              globalConfig.setOptions(this, options);
+          }
+          else {
               this.$options = mergeOptions(resolveConstructorOptions(this.constructor), options, this);
           }
           this.$el = null;
@@ -1882,6 +1885,9 @@
               vnode = createComponent(CompOptions, data, context, children, tag);
           }
       }
+      else if (typeof tag === 'object') {
+          vnode = createComponent(tag, data, context, children);
+      }
       return vnode;
   }
   function setOptions(vm, options) {
@@ -1889,7 +1895,7 @@
           /* 继承父级组件的options */
           var opts = vm.$options = Object.create(vm.constructor.options);
           opts.parent = options.parent;
-          var parentVnode = options._parentVnode;
+          var parentVnode = opts._parentVnode = options._parentVnode;
           var componentOptions = parentVnode.componentOptions;
           /* 初始化option.propsData */
           opts.propsData = componentOptions.propsData;
@@ -1899,6 +1905,7 @@
           if (options.render) {
               opts.render = options.render;
           }
+          vm.$options = opts;
       }
   }
   var componentsPlugin = {
@@ -1920,6 +1927,17 @@
           return (h('p', text));
       }
   });
+  var HelloText = {
+      data: function () {
+          return {
+              text: 'hello'
+          };
+      },
+      render: function (h) {
+          var text = this.text;
+          return (h('p', text));
+      }
+  };
   new Vue({
       data: function () {
           return {
@@ -1931,10 +1949,13 @@
       },
       render: function (h) {
           var text = this.text;
-          return h('div', {}, [
-              h('hello-text'),
-              text
-          ]);
+          return h(HelloText);
+          // return h(
+          //   'div', {}, [
+          //   h('hello-text'),
+          //   text
+          // ]
+          // )
       }
   })
       .$mount('#app');

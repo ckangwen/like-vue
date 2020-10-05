@@ -55,7 +55,7 @@ export type ExtendAPIOption = Omit<UserComponentOptions, 'el'>
 export interface ComponentOptions extends UserComponentOptions {
   parent?: any
   _isComponent?: boolean
-  _parentVnode?: VNode
+  _parentVnode?: VNode & PlainObject<any>
   [key: string]: any
 }
 

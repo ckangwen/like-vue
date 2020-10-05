@@ -104,13 +104,13 @@ export function initPatch(modules: ModuleHooks[]) {
     if (isPatchable(vnode)) {
       callPatchHook([cbs, (vnode.data.hook || {})], 'create', emptyVNode, vnode)
     } else {
-
+      // TODO
     }
   }
 
   function needRenderComponent(
     vnode: VNode,
-    parentEl: Node,
+    parentEl?: Node,
     refEl?: Node
   ) {
     if (vnode.componentInstance) { // 是一个组件
@@ -125,17 +125,15 @@ export function initPatch(modules: ModuleHooks[]) {
     parentEl?: Node,
     refEl?: Node
   ): Node | null {
-
     let { data = {}, tag } = vnode
     let children = vnode.children as VNode[]
     callPatchHook([cbs, (data.hook || {})], 'pre', vnode, parentEl, refEl)
 
     callPatchHook((data.hook || {}), 'init', vnode, false)
 
-    if (parentEl && needRenderComponent(vnode, parentEl, refEl)) {
+    if (needRenderComponent(vnode, parentEl, refEl)) {
       return null
     }
-
 
     if (tag) {
       // 创建真实DOM
@@ -350,14 +348,14 @@ function removeNode(el: Node) {
   if (parent) domApi.removeChild(parent, el)
 }
 
-function insertVnode(parent: Node, el: Node, ref?: Node) {
+function insertVnode(parent?: Node, el?: Node, ref?: Node) {
   if (parent) {
     if (ref) {
       if (domApi.parentNode(ref) === parent) {
-        domApi.insertBefore(parent, el, ref)
+        domApi.insertBefore(parent, el!, ref)
       }
     } else {
-      domApi.appendChild(parent, el)
+      domApi.appendChild(parent, el!)
     }
   }
 }
