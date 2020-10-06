@@ -12,7 +12,7 @@ export class HashHistory extends BaseHistory {
   }
 
   ensureURL (push?: boolean) {
-    const fullpath = this.current.fullPath
+    const fullpath = this.current.fullPath!
     if (getHash() !== fullpath) {
       push ? pushState(getUrlWithHash(fullpath)) : replaceState(getUrlWithHash(fullpath))
     }
@@ -26,7 +26,7 @@ export class HashHistory extends BaseHistory {
     this.transitionTo(
       location,
       (route: Route) => {
-        pushState(getUrlWithHash(route.fullPath))
+        pushState(getUrlWithHash(route.fullPath!))
         onComplete && onComplete(route)
       },
       onAbort

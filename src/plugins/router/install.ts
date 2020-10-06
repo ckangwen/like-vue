@@ -1,6 +1,7 @@
 import { __DEV__, noop, extend } from '@/shared'
 import { VueCtor } from '@/types'
 import { RouterView } from './components/view';
+import { defineReactive } from '@/core/observe/Observe';
 
 export let _Vue: any
 
@@ -21,7 +22,7 @@ export const install = function (Vue: VueCtor) {
         this._routerRoot = this
         this._router = this.$options.router
         this._router.init(this)
-        this._route = this._router.history.current
+        defineReactive(this, '_route', this._router.history.current)
       } else {
         this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
       }

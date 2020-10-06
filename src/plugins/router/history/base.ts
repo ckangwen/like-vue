@@ -64,7 +64,7 @@ export class BaseHistory {
 
     this.confirmTransition(
       route,
-      () => {
+      (route: Route) => {
         this.updateRoute(route)
         onComplete && onComplete(route)
         this.ensureURL()
@@ -119,8 +119,8 @@ export class BaseHistory {
    * 提取出updated(相同routeRecord), deactivated(current中将要失活的routeRecord),activated(route中即将激活的routeRecord)
    */
   private resovleQueue(route: Route) {
-    const current = this.current.matched
-    const next = route.matched
+    const current = this.current.matched!
+    const next = route.matched!
     let i
     const max = Math.max(current.length, next.length)
     for (i = 0; i < max; i++) {

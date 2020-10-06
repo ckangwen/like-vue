@@ -1,9 +1,11 @@
 import { BaseHistory } from './history/base';
 import { Matcher } from './Matcher';
-import { RawLocation, Route } from './types/router';
+import { RawLocation, Route, RouteRecord } from './types/router';
 import { HashHistory } from './history/hash';
 import { warn } from './utils/helper';
 import { HTML5History } from './history/html5';
+import { normalizeLocation } from './utils/location';
+import { cleanPath } from './utils/path';
 
 export class VueRouter {
   app: any
@@ -35,6 +37,9 @@ export class VueRouter {
     }
 
   }
+  get currentRoute (): Route {
+    return this.history && this.history.current
+  }
 
   match (raw: RawLocation, current?: Route, redirectedFrom?: Location): Route {
     return this.matcher.match(raw, current, redirectedFrom)
@@ -50,5 +55,77 @@ export class VueRouter {
       setupListeners,
       setupListeners
     )
+  }
+
+  push(location: RawLocation, onComplete?: Function, onAbort?: Function) {
+    if (!onComplete && !onAbort && typeof Promise !== 'undefined') {
+      return new Promise((resolve, reject) => {
+        this.history.push(location, resolve, reject)
+      })
+    } else {
+      this.history.push(location, onComplete, onAbort)
+    }
+  }
+
+  replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+    if (!onComplete && !onAbort && typeof Promise !== 'undefined') {
+      return new Promise((resolve, reject) => {
+        this.history.replace(location, resolve, reject)
+      })
+    } else {
+      this.history.replace(location, onComplete, onAbort)
+    }
+  }
+
+  go (n: number) {
+    this.history.go(n)
+  }
+
+  back () {
+    this.go(-1)
+  }
+
+  forward () {
+    this.go(1)
+  }
+
+  resolve(to: RawLocation, current?: Route, append?: boolean) {
+    current = current || this.history.current
+    const location = normalizeLocation(to, current, append)
+    const route = this.match(location, current)
+    const fullPath = route.redirectedFrom || route.fullPath
+    const base = this.history.base
+    const href = this.createHref(base, fullPath!, this.mode)
+
+    return {
+      location,
+      route,
+      href,
+      resolved: route
+    }
+  }
+
+  getMatchedComponents(to: RawLocation | Route) {
+    const route: any = to
+      ? (to as Route).matched
+        ? to
+        : this.resolve((to as RawLocation)).route
+      : this.currentRoute
+    if (!route) {
+      return []
+    }
+    return [].concat.apply(
+      [],
+      route.matched.map((m: RouteRecord) => {
+        return Object.keys(m.components).map(key => {
+          return m.components[key]
+        })
+      })
+    )
+  }
+
+  private createHref(base: string, fullPath: string, mode: string) {
+    const path = mode === 'hash' ? '#' + fullPath : fullPath
+    return base ? cleanPath(base + '/' + path) : path
   }
 }

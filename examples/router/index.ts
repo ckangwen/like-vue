@@ -4,14 +4,25 @@ import VueRouterPlugin from '@/plugins/router'
 import componentsPlugin from '@/plugins/components'
 
 Vue.use(componentsPlugin)
+Vue.use(VueRouterPlugin)
 
 const Home = {
   name: 'Home',
   data() {
     return {}
   },
-  render(h: Function) {
-    return h('h1', 'Home')
+  methods: {
+    onClick(this: any) {
+      this.$router.push('/login')
+      console.log(this.$router);
+    }
+  },
+  render(this: any, h: Function) {
+    const { onClick } = this
+    return h('div', [
+      h('h1', 'Home'),
+      h('button', { on: { click: onClick } }, '跳转到login')
+    ])
   }
 }
 const Login = {
@@ -19,8 +30,17 @@ const Login = {
   data() {
     return {}
   },
-  render(h: Function) {
-    return h('h1', 'Login')
+  methods: {
+    onClick(this: any) {
+      this.$router.push('/')
+    }
+  },
+  render(this: any, h: Function) {
+    const { onClick } = this
+    return h('div', [
+      h('h1', 'Login'),
+      h('button', { on: { click: onClick } }, '跳转到home')
+    ])
   }
 }
 
@@ -42,7 +62,6 @@ const router = new VueRouter({
   ]
 })
 
-Vue.use(VueRouterPlugin)
 
 const vm = new Vue({
   router,
