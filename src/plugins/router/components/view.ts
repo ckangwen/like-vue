@@ -3,28 +3,19 @@ import { extend, __DEV__, warn } from '../utils/helper';
 
 export const RouterView = {
   name: 'router-view',
-  data() {
-    return {
-      routerView: true,
-      routerViewDepth: 0
-    }
-  },
+  functional: true,
   props: {
     name: {
       type: String,
     }
   },
-  render(h: Function) {
-    const vm: any = this
-    let { routerViewDepth, name = 'default' } = vm
-    let children = vm.$children
-    let parent = vm.$options.parent
-    let data = vm.$options.componentVnode.data
+  render(h: Function, { children, parent, data, props }: any) {
+    data.routerView = true
+    const { name = 'default' } = props
     const route = parent.$route || parent._router
     const cache = parent._routerViewCache || (parent._routerViewCache = {})
 
     let depth = 0
-    let inactive = false
     // 确定当前的视图深度
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode ? parent.$vnode.data : {}
@@ -33,7 +24,7 @@ export const RouterView = {
       }
       parent = parent.$parent
     }
-    routerViewDepth = depth
+    data.routerViewDepth = depth
 
     const matched = route.matched[depth]
     const component = matched && matched.components[name] // name默认的default

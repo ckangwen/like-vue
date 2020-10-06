@@ -14,7 +14,6 @@ const Home = {
   methods: {
     onClick(this: any) {
       this.$router.push('/login')
-      console.log(this.$router);
     }
   },
   render(this: any, h: Function) {

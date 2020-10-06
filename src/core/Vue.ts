@@ -66,7 +66,6 @@ export class Vue {
      * 与全局options进行合并
      * 例如Vue.mixin()
      * */
-    // console.log(options, globalConfig);
     if (globalConfig.setOptions && options._isComponent) {
       globalConfig.setOptions(this, options)
     } else {

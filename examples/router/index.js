@@ -88,6 +88,9 @@
     function isDef(c) {
         return c !== undefined && c !== null;
     }
+    function isVnode(vnode) {
+        return vnode.tag !== undefined || isDef(vnode.text);
+    }
     function isObject(value) {
         return value !== null && typeof value === 'object';
     }
@@ -613,6 +616,23 @@
         var vnode = new VNode({ text: text });
         vnode.isComment = true;
         return vnode;
+    }
+    function cloneVNode(vnode) {
+        var cloned = new VNode({
+            tag: vnode.tag,
+            context: vnode.context,
+            data: vnode.data,
+            children: vnode.children && vnode.children.slice(),
+            text: vnode.text,
+            elm: vnode.elm,
+            componentOptions: vnode.componentOptions
+        });
+        cloned.key = vnode.key;
+        cloned.isComment = vnode.isComment;
+        cloned.fnContext = vnode.fnContext;
+        cloned.fnOptions = vnode.fnOptions;
+        cloned.isCloned = true;
+        return cloned;
     }
 
     function createElement(tagName) {
@@ -1707,7 +1727,6 @@
              * 与全局options进行合并
              * 例如Vue.mixin()
              * */
-            // console.log(options, globalConfig);
             if (globalConfig.setOptions && options._isComponent) {
                 globalConfig.setOptions(this, options);
             }
@@ -2680,6 +2699,7 @@
             // 当前路径所表示的路由对象
             var current = this.current;
             this.pending = route;
+            // if (isSameRoute(route, current)) {}
             var _a = this.resovleQueue(route), updated = _a.updated, deactivated = _a.deactivated, activated = _a.activated;
             // 解析activated数组中所有routeRecord里的异步路由组件
             if (this.pending !== route) ;
@@ -2861,15 +2881,33 @@
                     break;
             }
         }
+        Object.defineProperty(VueRouter.prototype, "currentRoute", {
+            get: function () {
+                return this.history && this.history.current;
+            },
+            enumerable: false,
+            configurable: true
+        });
         VueRouter.prototype.match = function (raw, current, redirectedFrom) {
             return this.matcher.match(raw, current, redirectedFrom);
         };
-        VueRouter.prototype.init = function () {
+        VueRouter.prototype.init = function (app) {
+            var _this = this;
+            this.apps.push(app);
+            if (this.app) {
+                return;
+            }
+            this.app = app;
             var history = this.history;
             var setupListeners = function () {
                 history.setupListeners();
             };
             history.transitionTo(history.getCurrentLocation(), setupListeners, setupListeners);
+            history.listen(function (route) {
+                _this.apps.forEach(function (app) {
+                    app._route = route;
+                });
+            });
         };
         VueRouter.prototype.push = function (location, onComplete, onAbort) {
             var _this = this;
@@ -2902,30 +2940,55 @@
         VueRouter.prototype.forward = function () {
             this.go(1);
         };
+        VueRouter.prototype.resolve = function (to, current, append) {
+            current = current || this.history.current;
+            var location = normalizeLocation(to, current, append);
+            var route = this.match(location, current);
+            var fullPath = route.redirectedFrom || route.fullPath;
+            var base = this.history.base;
+            var href = this.createHref(base, fullPath, this.mode);
+            return {
+                location: location,
+                route: route,
+                href: href,
+                resolved: route
+            };
+        };
+        VueRouter.prototype.getMatchedComponents = function (to) {
+            var route = to
+                ? to.matched
+                    ? to
+                    : this.resolve(to).route
+                : this.currentRoute;
+            if (!route) {
+                return [];
+            }
+            return [].concat.apply([], route.matched.map(function (m) {
+                return Object.keys(m.components).map(function (key) {
+                    return m.components[key];
+                });
+            }));
+        };
+        VueRouter.prototype.createHref = function (base, fullPath, mode) {
+            var path = mode === 'hash' ? '#' + fullPath : fullPath;
+            return base ? cleanPath(base + '/' + path) : path;
+        };
         return VueRouter;
     }());
 
     var RouterView = {
         name: 'router-view',
-        data: function () {
-            return {
-                routerView: true,
-                routerViewDepth: 0
-            };
-        },
+        functional: true,
         props: {
             name: {
                 type: String,
             }
         },
-        render: function (h) {
-            var vm = this;
-            var routerViewDepth = vm.routerViewDepth, _a = vm.name, name = _a === void 0 ? 'default' : _a;
-            var children = vm.$children;
-            var parent = vm.$options.parent;
-            var data = vm.$options.componentVnode.data;
+        render: function (h, _a) {
+            var children = _a.children, parent = _a.parent, data = _a.data, props = _a.props;
+            data.routerView = true;
+            var _b = props.name, name = _b === void 0 ? 'default' : _b;
             var route = parent.$route || parent._router;
-            console.log(route, parent, vm);
             var cache = parent._routerViewCache || (parent._routerViewCache = {});
             var depth = 0;
             // 确定当前的视图深度
@@ -2936,7 +2999,7 @@
                 }
                 parent = parent.$parent;
             }
-            routerViewDepth = depth;
+            data.routerViewDepth = depth;
             var matched = route.matched[depth];
             var component = matched && matched.components[name]; // name默认的default
             if (!matched || !component) {
@@ -3172,7 +3235,6 @@
              * 与全局options进行合并
              * 例如Vue.mixin()
              * */
-            // console.log(options, globalConfig);
             if (globalConfig.setOptions && options._isComponent) {
                 globalConfig.setOptions(this, options);
             }
@@ -3388,7 +3450,7 @@
         var slots = {};
         children.forEach(function (child) {
             var data = child.data || {};
-            if (child.context === context && data.slot) {
+            if ((child.context === context || child.fnContext === context) && data.slot) {
                 var name = data.slot;
                 var slot = (slots[name] || (slots[name] = []));
                 slot.push(child);
@@ -3461,10 +3523,71 @@
         return false;
     }
 
+    function createFunctionalComponent(Ctor, propsData, data, context, children) {
+        var _a;
+        var options = Ctor.options || {};
+        var props = {};
+        var propsOptions = options.props;
+        if (propsOptions) {
+            for (var key in propsOptions) {
+                props[key] = propsData[key];
+            }
+        }
+        else {
+            if (data.attrs)
+                mergeProps(props, data.attrs);
+            if (data.props)
+                mergeProps(props, data.props);
+        }
+        var renderContext = new FunctionalRenderContext(data, props, context, Ctor, children);
+        var vnode = (_a = options.render) === null || _a === void 0 ? void 0 : _a.call(null, renderContext.$createElement, renderContext);
+        if (isVnode(vnode)) {
+            return cloneAndMarkFunctionalResult(vnode, data, renderContext.parent, options);
+        }
+        // TODO 数组形式的vnode
+        if (Array.isArray(vnode)) {
+            var vnodes = normalizeChildren(vnode) || [];
+            var res = new Array(vnodes.length);
+            for (var i = 0; i < vnodes.length; i++) {
+                res[i] = cloneAndMarkFunctionalResult(vnodes[i], data, renderContext.parent, options);
+            }
+            return res;
+        }
+        return null;
+    }
+    function cloneAndMarkFunctionalResult(vnode, data, context, options, renderContext) {
+        var clone = cloneVNode(vnode);
+        clone.fnContext = context;
+        clone.fnOptions = options;
+        if (data.slot) {
+            (clone.data || (clone.data = {})).slot = data.slot;
+        }
+        return clone;
+    }
+    var FunctionalRenderContext = /** @class */ (function () {
+        function FunctionalRenderContext(data, props, parent, Ctor, children) {
+            var options = Ctor.options;
+            this.data = data;
+            this.props = props;
+            this.children = children;
+            this.parent = parent;
+            this.listeners = data.on || Object.create(null);
+            this.$slots = resolveSlots(children, parent);
+            this.$options = options;
+            this.$createElement = function (a, b, c) { return createElement$1(parent, a, b, c); };
+        }
+        return FunctionalRenderContext;
+    }());
+    function mergeProps(to, from) {
+        for (var key in from) {
+            to[camelize(key)] = from[key];
+        }
+    }
+
     function createComponent(Ctor, vnodeData, context, children, tag) {
         if (vnodeData === void 0) { vnodeData = {}; }
         if (!Ctor)
-            return;
+            return null;
         /* 根类，因为它拥有比较全面的api */
         var baseCtor = context.$options._base;
         /**
@@ -3477,10 +3600,13 @@
         /* 如果在此阶段Ctor依旧不是一个函数，则表示组件定义有误 */
         if (typeof Ctor !== 'function') {
             console.warn("Invalid Component definition: " + String(Ctor));
-            return;
+            return null;
         }
         /* vnodeData.props作为用户传递的数据，Ctor.options.props作为组件接收的数据 */
-        var propsData = extractPropsFromVNodeData(vnodeData, Ctor);
+        var propsData = extractPropsFromVNodeData(vnodeData, Ctor) || {};
+        if (Ctor.options.functional) {
+            return createFunctionalComponent(Ctor, propsData, vnodeData, context, children);
+        }
         var listeners = vnodeData.on;
         /* 调用生成组件的必要的hook，在渲染vnode的过程中调用 */
         installComponentHooks(vnodeData);
@@ -3639,7 +3765,6 @@
         methods: {
             onClick: function () {
                 this.$router.push('/login');
-                console.log(this.$router);
             }
         },
         render: function (h) {

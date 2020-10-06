@@ -9,7 +9,6 @@ import { cleanPath } from './utils/path';
 
 export class VueRouter {
   app: any
-  apps: Array<any>
   options: any
   history: HashHistory | HTML5History
   matcher: any
@@ -17,7 +16,6 @@ export class VueRouter {
 
   constructor(options = {} as any) {
     this.app = null
-    this.apps = []
     this.options = options
     this.matcher = new Matcher(options.routes || [], this)
     let mode = options.mode || 'hash'
@@ -45,7 +43,13 @@ export class VueRouter {
     return this.matcher.match(raw, current, redirectedFrom)
   }
 
-  init() {
+  init(app: any) {
+    if (this.app) {
+      return
+    }
+
+    this.app = app
+
     const history = this.history
     const setupListeners = () => {
       history.setupListeners()
@@ -55,6 +59,11 @@ export class VueRouter {
       setupListeners,
       setupListeners
     )
+
+    /* 在完成路由跳转之后执行listen中的回调，更新$route */
+    history.listen((route: any) => {
+      this.app._route = route
+    })
   }
 
   push(location: RawLocation, onComplete?: Function, onAbort?: Function) {

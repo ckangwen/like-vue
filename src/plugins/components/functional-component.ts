@@ -1,7 +1,7 @@
 import { Vue } from '@/core/Vue'
 import { VNodeData, PlainObject, ComponentOptions } from '@/types';
-import { camelize } from '@/shared'
-import { createElement, normalizeChildren, VNode, cloneVNode } from '@/core/vdom';
+import { camelize, isVnode } from '@/shared'
+import { createElement, normalizeChildren, cloneVNode, VNode } from '@/core/vdom';
 import { resolveSlots } from './slots';
 
 export function createFunctionalComponent(
@@ -33,7 +33,7 @@ export function createFunctionalComponent(
 
   const vnode = options.render?.call(null, renderContext.$createElement, renderContext)
 
-  if (vnode instanceof VNode) {
+  if (isVnode(vnode)) {
     return cloneAndMarkFunctionalResult(vnode, data, renderContext.parent, options, renderContext)
   }
 

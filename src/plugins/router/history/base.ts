@@ -94,7 +94,11 @@ export class BaseHistory {
     this.pending = route
     const abort = (err: any) => { onAbort && onAbort(err) }
 
+    // if (isSameRoute(route, current)) {}
+
     const { updated, deactivated, activated } = this.resovleQueue(route)
+    const queue = ([] as RouteRecord[]).concat(activated)
+
     // 解析activated数组中所有routeRecord里的异步路由组件
     if (this.pending !== route) {
       // return abort(createNavigationCancelledError(current, route))
