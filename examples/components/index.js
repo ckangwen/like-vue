@@ -600,6 +600,23 @@
         vnode.isComment = true;
         return vnode;
     }
+    function cloneVNode(vnode) {
+        var cloned = new VNode({
+            tag: vnode.tag,
+            context: vnode.context,
+            data: vnode.data,
+            children: vnode.children && vnode.children.slice(),
+            text: vnode.text,
+            elm: vnode.elm,
+            componentOptions: vnode.componentOptions
+        });
+        cloned.key = vnode.key;
+        cloned.isComment = vnode.isComment;
+        cloned.fnContext = vnode.fnContext;
+        cloned.fnOptions = vnode.fnOptions;
+        cloned.isCloned = true;
+        return cloned;
+    }
 
     function createElement(tagName) {
         return document.createElement(tagName);
@@ -2059,13 +2076,20 @@
         Object.defineProperty(target, key, sharedPropertyDefinition$1);
     }
 
+    function initSlots(vm) {
+        var parentVnode = vm.$vnode = vm.$options.componentVnode;
+        var renderContext = parentVnode && parentVnode.context;
+        /* renderChildren在Vue构造函数初始化时被赋值为组件的子元素 */
+        vm.$slots = resolveSlots(vm.$options.renderChildren, renderContext);
+        vm.$scopedSlots = Object.create(null);
+    }
     function resolveSlots(children, context) {
         if (!children || children.length === 0)
             return {};
         var slots = {};
         children.forEach(function (child) {
             var data = child.data || {};
-            if (child.context === context && data.slot) {
+            if ((child.context === context || child.fnContext === context) && data.slot) {
                 var name = data.slot;
                 var slot = (slots[name] || (slots[name] = []));
                 slot.push(child);
@@ -2138,10 +2162,70 @@
         return false;
     }
 
+    function createFunctionalComponent(Ctor, propsData, data, context, children) {
+        var _a;
+        var options = Ctor.options || {};
+        var props = {};
+        var propsOptions = options.props;
+        if (propsOptions) {
+            for (var key in propsOptions) {
+                props[key] = propsData[key];
+            }
+        }
+        else {
+            if (data.attrs)
+                mergeProps(props, data.attrs);
+            if (data.props)
+                mergeProps(props, data.props);
+        }
+        var renderContext = new FunctionalRenderContext(data, props, context, Ctor, children);
+        var vnode = (_a = options.render) === null || _a === void 0 ? void 0 : _a.call(null, renderContext.$createElement, renderContext);
+        if (vnode instanceof VNode) {
+            return cloneAndMarkFunctionalResult(vnode, data, renderContext.parent, options);
+        }
+        if (Array.isArray(vnode)) {
+            var vnodes = normalizeChildren(vnode) || [];
+            var res = new Array(vnodes.length);
+            for (var i = 0; i < vnodes.length; i++) {
+                res[i] = cloneAndMarkFunctionalResult(vnodes[i], data, renderContext.parent, options);
+            }
+            return res;
+        }
+        return null;
+    }
+    function cloneAndMarkFunctionalResult(vnode, data, context, options, renderContext) {
+        var clone = cloneVNode(vnode);
+        clone.fnContext = context;
+        clone.fnOptions = options;
+        if (data.slot) {
+            (clone.data || (clone.data = {})).slot = data.slot;
+        }
+        return clone;
+    }
+    var FunctionalRenderContext = /** @class */ (function () {
+        function FunctionalRenderContext(data, props, parent, Ctor, children) {
+            var options = Ctor.options;
+            this.data = data;
+            this.props = props;
+            this.children = children;
+            this.parent = parent;
+            this.listeners = data.on || Object.create(null);
+            this.$slots = resolveSlots(children, parent);
+            this.$options = options;
+            this.$createElement = function (a, b, c) { return createElement$1(parent, a, b, c); };
+        }
+        return FunctionalRenderContext;
+    }());
+    function mergeProps(to, from) {
+        for (var key in from) {
+            to[camelize(key)] = from[key];
+        }
+    }
+
     function createComponent(Ctor, vnodeData, context, children, tag) {
         if (vnodeData === void 0) { vnodeData = {}; }
         if (!Ctor)
-            return;
+            return null;
         /* 根类，因为它拥有比较全面的api */
         var baseCtor = context.$options._base;
         /**
@@ -2154,10 +2238,13 @@
         /* 如果在此阶段Ctor依旧不是一个函数，则表示组件定义有误 */
         if (typeof Ctor !== 'function') {
             console.warn("Invalid Component definition: " + String(Ctor));
-            return;
+            return null;
         }
         /* vnodeData.props作为用户传递的数据，Ctor.options.props作为组件接收的数据 */
-        var propsData = extractPropsFromVNodeData(vnodeData, Ctor);
+        var propsData = extractPropsFromVNodeData(vnodeData, Ctor) || {};
+        if (Ctor.options.functional) {
+            return createFunctionalComponent(Ctor, propsData, vnodeData, context, children);
+        }
         var listeners = vnodeData.on;
         /* 调用生成组件的必要的hook，在渲染vnode的过程中调用 */
         installComponentHooks(vnodeData);
@@ -2294,17 +2381,13 @@
             Vue.mixin({
                 beforeCreate: function () {
                     var vm = this;
-                    var parentVnode = vm.$vnode = vm.$options.componentVnode;
-                    var renderContext = parentVnode && parentVnode.context;
-                    vm.$slots = resolveSlots(vm.$options.renderChildren, renderContext);
-                    vm.$scopedSlots = Object.create(null);
+                    initSlots(vm);
                 },
                 created: function () {
                     var vm = this;
                     if (vm.$options.props) {
                         initProps(vm, vm.$options.props);
                     }
-                    var componentVnode = vm.$options.componentVnode;
                 }
             });
         }
@@ -2330,6 +2413,16 @@
             ], $slots.default)));
         }
     });
+    Vue.component('functional', {
+        functional: true,
+        props: {
+            name: String
+        },
+        render: function (h, context) {
+            var name = context.props.name;
+            return h('p', "functional-component, name is " + name);
+        }
+    });
     new Vue({
         data: function () {
             return {
@@ -2351,7 +2444,8 @@
                     h('p', '默认插槽'),
                     h('p', { slot: 'header' }, '具名插槽'),
                 ]),
-                h('button', { on: { click: changeText } }, '改变text')
+                h('button', { on: { click: changeText } }, '改变text'),
+                h('functional', { attrs: { name: 'foo' } })
             ]);
         }
     })

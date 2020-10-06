@@ -5,7 +5,7 @@ import { VNode } from '@/core/vdom/vnode'
 import { createComponent } from './createComponent';
 
 export function createElement(context: Vue, tag: string, data: VNodeData, children: VNode[]) {
-  let vnode: VNode | undefined
+  let vnode: VNode | undefined | null
   if (typeof tag === 'string' && !isHTMLTag(tag)) {
     const components = context.$options.components
     let CompOptions = resolveGlobalComponents(components, tag)

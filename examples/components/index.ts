@@ -28,6 +28,17 @@ Vue.component('hello-text', {
   }
 })
 
+Vue.component('functional', {
+  functional: true,
+  props: {
+    name: String
+  },
+  render(h: any, context: any) {
+    const { name } = context.props
+    return h('p', `functional-component, name is ${name}`)
+  }
+})
+
 
 new Vue({
   data() {
@@ -51,7 +62,8 @@ new Vue({
         h('p', '默认插槽'),
         h('p', { slot: 'header' }, '具名插槽'),
       ]),
-      h('button', { on: { click: changeText } }, '改变text')
+      h('button', { on: { click: changeText } }, '改变text'),
+      h('functional',{ attrs: { name: 'foo' } })
     ]
     )
   }

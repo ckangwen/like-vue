@@ -9,14 +9,14 @@ export function initSlots(vm: any) {
   vm.$scopedSlots = Object.create(null)
 }
 
-function resolveSlots(children: VNode[], context: Vue) {
+export function resolveSlots(children: VNode[] | undefined, context: Vue) {
   if (!children || children.length === 0) return {}
 
   const slots = {} as any
   children.forEach(child => {
     const data = child.data || {}
 
-    if (child.context === context && data.slot) {
+    if ((child.context === context || child.fnContext === context) && data.slot) {
       const name = data.slot
       const slot = (slots[name] || (slots[name] = []))
       slot.push(child)

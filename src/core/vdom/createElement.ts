@@ -53,7 +53,7 @@ export function createElement(
 /**
  * 校验子组件是否符合规范
  */
-function normalizeChildren(children: VNodeChildren) {
+export function normalizeChildren(children: VNodeChildren) {
   return isPrimitive(children)
     ? [createTextVNode(children)]
     : Array.isArray(children)

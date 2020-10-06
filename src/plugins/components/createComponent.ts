@@ -4,6 +4,7 @@ import { VNode } from '@/core/vdom/vnode'
 import { isObject, __DEV__ } from '@/shared'
 import { extractPropsFromVNodeData } from './helper/extra-props';
 import { updateComponentListeners } from '@/core/helper'
+import { createFunctionalComponent } from './functional-component';
 
 export function createComponent(
   Ctor: any,
@@ -11,8 +12,8 @@ export function createComponent(
   context: Vue,
   children?: VNode[],
   tag?: string
-): VNode | undefined {
-  if (!Ctor) return
+): VNode | null {
+  if (!Ctor) return null
 
   /* 根类，因为它拥有比较全面的api */
   const baseCtor = context.$options._base
@@ -28,11 +29,15 @@ export function createComponent(
   /* 如果在此阶段Ctor依旧不是一个函数，则表示组件定义有误 */
   if (typeof Ctor !== 'function') {
     if (__DEV__) console.warn(`Invalid Component definition: ${String(Ctor)}`)
-    return
+    return null
   }
 
   /* vnodeData.props作为用户传递的数据，Ctor.options.props作为组件接收的数据 */
-  const propsData = extractPropsFromVNodeData(vnodeData, Ctor, tag)
+  const propsData = extractPropsFromVNodeData(vnodeData, Ctor, tag) || {} as any
+
+  if (Ctor.options.functional) {
+    return createFunctionalComponent(Ctor, propsData, vnodeData, context, children) as any
+  }
 
   const listeners = vnodeData.on
 
