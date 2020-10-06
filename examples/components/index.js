@@ -1839,152 +1839,6 @@
     }());
     initGlobalAPI(Vue);
 
-    var VNode$1 = /** @class */ (function () {
-        function VNode(_a) {
-            var context = _a.context, _b = _a.tag, tag = _b === void 0 ? '' : _b, _c = _a.data, data = _c === void 0 ? {} : _c, _d = _a.children, children = _d === void 0 ? [] : _d, _e = _a.text, text = _e === void 0 ? '' : _e, elm = _a.elm, _f = _a.componentOptions, componentOptions = _f === void 0 ? {} : _f;
-            this.componentOptions = {};
-            this.tag = tag;
-            this.data = data;
-            this.children = children;
-            this.text = text;
-            this.elm = elm;
-            this.context = context;
-            this.isComment = false;
-            this.componentInstance = null;
-            this.componentOptions = componentOptions;
-        }
-        return VNode;
-    }());
-
-    function extractPropsFromVNodeData(data, Ctor, tag) {
-        var propOptions = Ctor.options.props;
-        if (!propOptions)
-            return;
-        var res = {};
-        var _a = data.attrs, attrs = _a === void 0 ? {} : _a, _b = data.props, props = _b === void 0 ? {} : _b;
-        if (isDef(attrs) || isDef(props)) {
-            for (var key in propOptions) {
-                var altKey = hyphenate(key);
-                checkProp(res, props, key, altKey, true) ||
-                    checkProp(res, attrs, key, altKey, false);
-            }
-        }
-        return res;
-    }
-    function checkProp(res, hash, key, altKey, preserve) {
-        if (isDef(hash)) {
-            if (hasOwn(hash, key)) {
-                res[key] = hash[key];
-                if (!preserve) {
-                    delete hash[key];
-                }
-                return true;
-            }
-            else if (hasOwn(hash, altKey)) {
-                res[key] = hash[altKey];
-                if (!preserve) {
-                    delete hash[altKey];
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function createComponent(Ctor, vnodeData, context, children, tag) {
-        if (vnodeData === void 0) { vnodeData = {}; }
-        if (!Ctor)
-            return;
-        /* 根类，因为它拥有比较全面的api */
-        var baseCtor = context.$options._base;
-        /**
-         * 若Ctor是一个对象，则利用Vue.extend将其扩展为Vue子类
-         * 适用于注册局部组件的情况，直接将组件的选项(options)传入
-         */
-        if (isObject(Ctor)) {
-            Ctor = baseCtor.extend(Ctor);
-        }
-        /* 如果在此阶段Ctor依旧不是一个函数，则表示组件定义有误 */
-        if (typeof Ctor !== 'function') {
-            console.warn("Invalid Component definition: " + String(Ctor));
-            return;
-        }
-        /* vnodeData.props作为用户传递的数据，Ctor.options.props作为组件接收的数据 */
-        var propsData = extractPropsFromVNodeData(vnodeData, Ctor);
-        // TODO data.on，组件事件
-        var listeners = vnodeData.on;
-        /* 调用生成组件的必要的hook，在渲染vnode的过程中调用 */
-        installComponentHooks(vnodeData);
-        /* 记录组件名，用于生成组件tag */
-        var name = Ctor.options.name || tag;
-        var vnode = new VNode$1({
-            context: context,
-            data: vnodeData,
-            tag: "vue-component-" + Ctor.cid + (name ? "-" + name : ''),
-            componentOptions: {
-                parent: context,
-                Ctor: Ctor,
-                tag: tag,
-                children: children,
-                propsData: propsData,
-                listeners: listeners
-            }
-        });
-        return vnode;
-    }
-    var componentVNodeHooks = {
-        init: function (vnode, hydrating) {
-            /* 生成组件实例 */
-            var child = vnode.componentInstance = createComponentInstance(vnode, vnode.componentOptions);
-            /* 渲染为真实DOM */
-            child.$mount(hydrating ? vnode.elm : undefined, hydrating);
-        },
-        prepatch: function (oldVnode, vnode) {
-            /* 这里的children指代的是插槽 */
-            var _a = vnode.componentOptions, listeners = _a.listeners, propsData = _a.propsData, children = _a.children;
-            var child = vnode.componentInstance = oldVnode.componentInstance;
-            child.$options._parentVnode = vnode;
-            var oldListeners = child.$options._parentListeners;
-            updateComponentListeners(child, listeners, oldListeners);
-            // update vm's placeholder node without re-render
-            child.$vnode = vnode;
-            /* _props存储的props的键值对, _props将会被代理到vm上 */
-            if (propsData && child.$options.props) {
-                var props_1 = child._props;
-                var propKeys = child.$options._propKeys || [];
-                Object.keys(propKeys).forEach(function (key) {
-                    props_1[key] = propsData[key];
-                });
-            }
-            if (child._vnode) { // update child tree's parent
-                child._vnode.parent = vnode;
-            }
-        },
-        destroy: function (vnode) {
-            var componentInstance = vnode.componentInstance;
-            if (!componentInstance._isDestroyed) {
-                componentInstance.$destory();
-            }
-        }
-    };
-    function createComponentInstance(vnode, componentOptions) {
-        var options = __assign({ _isComponent: true, _parentVnode: vnode }, componentOptions);
-        return new componentOptions.Ctor(options);
-    }
-    function installComponentHooks(data) {
-        var hooks = data.hook || (data.hook = {});
-        var key;
-        for (key in componentVNodeHooks) {
-            var hook = componentVNodeHooks[key];
-            if (!hook)
-                continue;
-            if (!hooks[key]) {
-                hooks[key] = new Set();
-            }
-            hooks[key].add(hook);
-        }
-    }
-
     var uid$3 = 0;
     var Vue$1 = /** @class */ (function () {
         function Vue(options) {
@@ -2205,20 +2059,178 @@
         Object.defineProperty(target, key, sharedPropertyDefinition$1);
     }
 
-    function resolveGlobalComponents(components, tag) {
-        if (hasOwn(components, tag)) {
-            return components[tag];
+    function resolveSlots(children, context) {
+        if (!children || children.length === 0)
+            return {};
+        var slots = {};
+        children.forEach(function (child) {
+            var data = child.data || {};
+            if (child.context === context && data.slot) {
+                var name = data.slot;
+                var slot = (slots[name] || (slots[name] = []));
+                slot.push(child);
+            }
+            else {
+                (slots.default || (slots.default = [])).push(child);
+            }
+        });
+        /* 无需渲染注释节点和空白节点 */
+        for (var name in slots) {
+            if (slots[name].every(isWhitespace)) {
+                delete slots[name];
+            }
         }
-        var camelizedId = camelize(tag);
-        if (hasOwn(components, camelizedId))
-            return components[camelizedId];
-        var PascalCaseId = capitalize(camelizedId);
-        if (hasOwn(components, PascalCaseId))
-            return components[PascalCaseId];
-        {
-            console.warn('Failed to resolve component' + ': ' + tag);
+        return slots;
+    }
+    function isWhitespace(node) {
+        return node.isComment || node.text === ' ';
+    }
+
+    var VNode$1 = /** @class */ (function () {
+        function VNode(_a) {
+            var context = _a.context, _b = _a.tag, tag = _b === void 0 ? '' : _b, _c = _a.data, data = _c === void 0 ? {} : _c, _d = _a.children, children = _d === void 0 ? [] : _d, _e = _a.text, text = _e === void 0 ? '' : _e, elm = _a.elm, _f = _a.componentOptions, componentOptions = _f === void 0 ? {} : _f;
+            this.componentOptions = {};
+            this.tag = tag;
+            this.data = data;
+            this.children = children;
+            this.text = text;
+            this.elm = elm;
+            this.context = context;
+            this.isComment = false;
+            this.componentInstance = null;
+            this.componentOptions = componentOptions;
+        }
+        return VNode;
+    }());
+
+    function extractPropsFromVNodeData(data, Ctor, tag) {
+        var propOptions = Ctor.options.props;
+        if (!propOptions)
+            return;
+        var res = {};
+        var _a = data.attrs, attrs = _a === void 0 ? {} : _a, _b = data.props, props = _b === void 0 ? {} : _b;
+        if (isDef(attrs) || isDef(props)) {
+            for (var key in propOptions) {
+                var altKey = hyphenate(key);
+                checkProp(res, props, key, altKey, true) ||
+                    checkProp(res, attrs, key, altKey, false);
+            }
+        }
+        return res;
+    }
+    function checkProp(res, hash, key, altKey, preserve) {
+        if (isDef(hash)) {
+            if (hasOwn(hash, key)) {
+                res[key] = hash[key];
+                if (!preserve) {
+                    delete hash[key];
+                }
+                return true;
+            }
+            else if (hasOwn(hash, altKey)) {
+                res[key] = hash[altKey];
+                if (!preserve) {
+                    delete hash[altKey];
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function createComponent(Ctor, vnodeData, context, children, tag) {
+        if (vnodeData === void 0) { vnodeData = {}; }
+        if (!Ctor)
+            return;
+        /* 根类，因为它拥有比较全面的api */
+        var baseCtor = context.$options._base;
+        /**
+         * 若Ctor是一个对象，则利用Vue.extend将其扩展为Vue子类
+         * 适用于注册局部组件的情况，直接将组件的选项(options)传入
+         */
+        if (isObject(Ctor)) {
+            Ctor = baseCtor.extend(Ctor);
+        }
+        /* 如果在此阶段Ctor依旧不是一个函数，则表示组件定义有误 */
+        if (typeof Ctor !== 'function') {
+            console.warn("Invalid Component definition: " + String(Ctor));
+            return;
+        }
+        /* vnodeData.props作为用户传递的数据，Ctor.options.props作为组件接收的数据 */
+        var propsData = extractPropsFromVNodeData(vnodeData, Ctor);
+        var listeners = vnodeData.on;
+        /* 调用生成组件的必要的hook，在渲染vnode的过程中调用 */
+        installComponentHooks(vnodeData);
+        /* 记录组件名，用于生成组件tag */
+        var name = Ctor.options.name || tag;
+        var vnode = new VNode$1({
+            context: context,
+            data: vnodeData,
+            tag: "vue-component-" + Ctor.cid + (name ? "-" + name : ''),
+            componentOptions: {
+                parent: context,
+                Ctor: Ctor,
+                tag: tag,
+                children: children,
+                propsData: propsData,
+                listeners: listeners
+            }
+        });
+        return vnode;
+    }
+    var componentVNodeHooks = {
+        init: function (vnode, hydrating) {
+            /* 生成组件实例 */
+            var child = vnode.componentInstance = createComponentInstance(vnode, vnode.componentOptions);
+            /* 渲染为真实DOM */
+            child.$mount(hydrating ? vnode.elm : undefined, hydrating);
+        },
+        prepatch: function (oldVnode, vnode) {
+            /* 这里的children指代的是插槽 */
+            var _a = vnode.componentOptions, listeners = _a.listeners, propsData = _a.propsData, children = _a.children;
+            var child = vnode.componentInstance = oldVnode.componentInstance;
+            child.$options.componentVnode = vnode;
+            var oldListeners = child.$options._parentListeners;
+            updateComponentListeners(child, listeners, oldListeners);
+            // update vm's placeholder node without re-render
+            child.$vnode = vnode;
+            /* _props存储的props的键值对, _props将会被代理到vm上 */
+            if (propsData && child.$options.props) {
+                var props_1 = child._props;
+                var propKeys = child.$options._propKeys || [];
+                Object.keys(propKeys).forEach(function (key) {
+                    props_1[key] = propsData[key];
+                });
+            }
+            if (child._vnode) { // update child tree's parent
+                child._vnode.parent = vnode;
+            }
+        },
+        destroy: function (vnode) {
+            var componentInstance = vnode.componentInstance;
+            if (!componentInstance._isDestroyed) {
+                componentInstance.$destory();
+            }
+        }
+    };
+    function createComponentInstance(vnode, componentOptions) {
+        var options = __assign({ _isComponent: true, componentVnode: vnode }, componentOptions);
+        return new componentOptions.Ctor(options);
+    }
+    function installComponentHooks(data) {
+        var hooks = data.hook || (data.hook = {});
+        var key;
+        for (key in componentVNodeHooks) {
+            var hook = componentVNodeHooks[key];
+            if (!hook)
+                continue;
+            if (!hooks[key]) {
+                hooks[key] = new Set();
+            }
+            hooks[key].add(hook);
         }
     }
+
     function createElement$2(context, tag, data, children) {
         var vnode;
         if (typeof tag === 'string' && !isHTMLTag(tag)) {
@@ -2233,18 +2245,25 @@
         }
         return vnode;
     }
-    function setOptions(vm, options) {
+    /**
+     * 组件的初始化
+     */
+    function initInternalComponent(vm, options) {
         if (options && options._isComponent) {
             /* 继承父级组件的options */
             var opts = vm.$options = Object.create(vm.constructor.options);
+            /* 组件的父级vue实例 */
             opts.parent = options.parent;
-            var parentVnode = opts._parentVnode = options._parentVnode;
+            /* 存储该组件的VNode结构 */
+            var parentVnode = opts.componentVnode = options.componentVnode;
+            /* 组件的附带信息 */
             var componentOptions = parentVnode.componentOptions;
+            /* 组件上的事件 */
             opts._parentListeners = options.listeners;
-            console.log(options);
-            /* 初始化option.propsData */
+            /* 初始化option.propsData，props的值 */
             opts.propsData = componentOptions.propsData;
-            // opts._parentListeners = vnodeComponentOptions.listeners
+            /* 记录组件的子元素，作为插槽使用 */
+            opts.renderChildren = options.children;
             // 记录组件名，在formatComponentName中使用
             opts._componentTag = componentOptions.tag;
             if (options.render) {
@@ -2253,16 +2272,39 @@
             vm.$options = opts;
         }
     }
+    function resolveGlobalComponents(components, tag) {
+        if (hasOwn(components, tag)) {
+            return components[tag];
+        }
+        var camelizedId = camelize(tag);
+        if (hasOwn(components, camelizedId))
+            return components[camelizedId];
+        var PascalCaseId = capitalize(camelizedId);
+        if (hasOwn(components, PascalCaseId))
+            return components[PascalCaseId];
+        {
+            console.warn('Failed to resolve component' + ': ' + tag);
+        }
+    }
+
     var componentsPlugin = {
         install: function (Vue) {
             Vue.config.set('createElement', createElement$2);
-            Vue.config.set('setOptions', setOptions);
+            Vue.config.set('setOptions', initInternalComponent);
             Vue.mixin({
+                beforeCreate: function () {
+                    var vm = this;
+                    var parentVnode = vm.$vnode = vm.$options.componentVnode;
+                    var renderContext = parentVnode && parentVnode.context;
+                    vm.$slots = resolveSlots(vm.$options.renderChildren, renderContext);
+                    vm.$scopedSlots = Object.create(null);
+                },
                 created: function () {
                     var vm = this;
                     if (vm.$options.props) {
                         initProps(vm, vm.$options.props);
                     }
+                    var componentVnode = vm.$options.componentVnode;
                 }
             });
         }
@@ -2280,9 +2322,12 @@
             }
         },
         render: function (h) {
-            var _a = this, _b = _a.text, text = _b === void 0 ? 'defaultText' : _b, clickToEmit = _a.clickToEmit;
-            return (h('p', text),
-                h('p', { on: { click: clickToEmit } }, '点击向上传递test事件'));
+            var _a = this, _b = _a.text, text = _b === void 0 ? 'defaultText' : _b, clickToEmit = _a.clickToEmit, $slots = _a.$slots;
+            console.log($slots);
+            return (h('div', __spread(($slots.header ? $slots.header : []), [
+                h('p', text),
+                h('p', { on: { click: clickToEmit } }, '点击向上传递test事件')
+            ], $slots.default)));
         }
     });
     new Vue({
@@ -2296,13 +2341,16 @@
                 this.text = this.text + '--';
             },
             testHandler: function () {
-                console.log('testHandler事件触发');
+                console.log('test事件在父组件触发');
             }
         },
         render: function (h) {
             var _a = this, text = _a.text, changeText = _a.changeText, testHandler = _a.testHandler;
             return h('div', {}, [
-                h('hello-text', { attrs: { text: text }, on: { test: testHandler } }),
+                h('hello-text', { attrs: { text: text }, on: { test: testHandler } }, [
+                    h('p', '默认插槽'),
+                    h('p', { slot: 'header' }, '具名插槽'),
+                ]),
                 h('button', { on: { click: changeText } }, '改变text')
             ]);
         }

@@ -33,7 +33,6 @@ export function createComponent(
 
   /* vnodeData.props作为用户传递的数据，Ctor.options.props作为组件接收的数据 */
   const propsData = extractPropsFromVNodeData(vnodeData, Ctor, tag)
-  // TODO data.on，组件事件
 
   const listeners = vnodeData.on
 
@@ -71,7 +70,7 @@ const componentVNodeHooks: ModuleHooks = {
     /* 这里的children指代的是插槽 */
     const { listeners, propsData, children } = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance
-    child.$options._parentVnode = vnode
+    child.$options.componentVnode = vnode
     const oldListeners = child.$options._parentListeners
     updateComponentListeners(child, listeners, oldListeners)
 
@@ -106,7 +105,7 @@ function createComponentInstance(
 ): Vue {
   const options: ComponentOptions = {
     _isComponent: true,
-    _parentVnode: vnode,
+    componentVnode: vnode,
     ...componentOptions
   }
 

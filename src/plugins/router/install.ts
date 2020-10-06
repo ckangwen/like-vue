@@ -11,7 +11,7 @@ export const install = function (Vue: VueCtor) {
   _Vue = Vue
 
   const registerInstance = (vm: any, callVal: any) => {
-    let hook = vm.$options._parentVnode?.data?.registerRouteInstance
+    let hook = vm.$options.componentVnode?.data?.registerRouteInstance
     typeof hook === 'function' && hook(vm, callVal) // callVal作为component instance插入route.matched.instances
   }
 

@@ -19,7 +19,7 @@ export const RouterView = {
     let { routerViewDepth, name = 'default' } = vm
     let children = vm.$children
     let parent = vm.$options.parent
-    let data = vm.$options._parentVnode.data
+    let data = vm.$options.componentVnode.data
     const route = parent.$route || parent._router
     const cache = parent._routerViewCache || (parent._routerViewCache = {})
 

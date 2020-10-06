@@ -30,6 +30,7 @@ export type VNodeData = Partial<{
   on: On
   normalizedStyle: VNodeStyle
   hook: ModuleHookSet
+  slot: any
 }>
 
 export type VNodeChildren = VNode | VNode[] | string | boolean | string[] | (VNode | string)[] |null

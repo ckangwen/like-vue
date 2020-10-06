@@ -8,14 +8,13 @@ import {
   __DEV__,
   isPrimitive
 } from '@/shared'
-import { type } from 'os'
 
-export function createElement(context: Vue, tag: string): VNode
-export function createElement(context: Vue, tag: string, data: VNodeData | null): VNode
-export function createElement(context: Vue, tag: string, children?: VNodeChildren): VNode
-export function createElement(context: Vue, tag: string, data: VNodeData | null, children?: VNodeChildren): VNode
+export function createElement(context: Vue, tag: any): VNode
+export function createElement(context: Vue, tag: any, data: VNodeData | null): VNode
+export function createElement(context: Vue, tag: any, children?: VNodeChildren): VNode
+export function createElement(context: Vue, tag: any, data: VNodeData | null, children?: VNodeChildren): VNode
 export function createElement(
-  context?: Vue,
+  context: Vue,
   tag?: string,
   data?: any,
   children?: any

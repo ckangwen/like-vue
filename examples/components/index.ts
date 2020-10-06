@@ -15,10 +15,15 @@ Vue.component('hello-text', {
     }
   },
   render(h: Function) {
-    const { text = 'defaultText', clickToEmit } = this
+    const { text = 'defaultText', clickToEmit, $slots } = this
+    console.log($slots);
     return (
-      h('p', text),
-      h('p', { on: { click: clickToEmit } }, '点击向上传递test事件')
+      h('div', [
+        ...($slots.header ? $slots.header : []),
+        h('p', text),
+        h('p', { on: { click: clickToEmit } }, '点击向上传递test事件'),
+        ...$slots.default
+      ])
     )
   }
 })
@@ -42,7 +47,10 @@ new Vue({
     const { text, changeText, testHandler } = this
     return h(
       'div', {}, [
-      h('hello-text', { attrs: { text }, on: { test: testHandler } }),
+      h('hello-text', { attrs: { text }, on: { test: testHandler } }, [
+        h('p', '默认插槽'),
+        h('p', { slot: 'header' }, '具名插槽'),
+      ]),
       h('button', { on: { click: changeText } }, '改变text')
     ]
     )
