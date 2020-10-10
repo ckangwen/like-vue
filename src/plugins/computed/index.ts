@@ -99,17 +99,20 @@ function createGetterInvoker(fn: Function) {
     return fn.call(this, this)
   }
 }
+function install(Vue: VueCtor) {
+  if ((install as any).installed) return
+  (install as any).installed = true
+  Vue.config.set('optionMergeStrategies.computed', computedMergeStrategy)
+
+  Vue.mixin({
+    created(this: Vue) { // created生命周期之后可以访问到data中的值
+      const vm: Vue = this
+      const { computed } = this.$options
+      initComputed(vm, computed)
+    }
+  })
+}
 
 export default {
-  install(Vue: VueCtor) {
-    Vue.config.set('optionMergeStrategies.computed', computedMergeStrategy)
-
-    Vue.mixin({
-      created(this: Vue) { // created生命周期之后可以访问到data中的值
-        const vm: Vue = this
-        const { computed } = this.$options
-        initComputed(vm, computed)
-      }
-    })
-  }
+  install
 }
