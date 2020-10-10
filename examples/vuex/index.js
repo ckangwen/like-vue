@@ -77,6 +77,11 @@
     function isObject(value) {
         return value !== null && typeof value === 'object';
     }
+    function isPromise(val) {
+        return (isDef(val) &&
+            typeof val.then === 'function' &&
+            typeof val.catch === 'function');
+    }
     function isPlainObject(obj) {
         return Object.prototype.toString.call(obj) === '[object Object]';
     }
@@ -157,6 +162,7 @@
             configurable: true
         });
     }
+    var __DEV__ = "development" !== 'production';
     var HTMLTag = [
         'html', 'body', 'base',
         'head', 'link', 'meta',
@@ -2131,6 +2137,25 @@
             var rawState = rawModule.state;
             this.state = (typeof rawState === 'function' ? rawState() : rawState) || {};
         }
+        Object.defineProperty(Module.prototype, "namespaced", {
+            get: function () {
+                return this._rawModule.namespaced;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Module.prototype.addChild = function (module, key) {
+            this._children[key] = module;
+        };
+        Module.prototype.removeChild = function (key) {
+            delete this._children[key];
+        };
+        Module.prototype.getChild = function (key) {
+            return this._children[key];
+        };
+        Module.prototype.hasChild = function (key) {
+            return key in this._children;
+        };
         /**
          * 更新本模块中的各个状态
          */
@@ -2145,6 +2170,9 @@
             if (rawModule.getters) {
                 this._rawModule.getters = rawModule.getters;
             }
+        };
+        Module.prototype.forEachChild = function (fn) {
+            forEachValue(this._children, fn);
         };
         Module.prototype.forEachGetter = function (fn) {
             if (this._rawModule.getters) {
@@ -2169,19 +2197,79 @@
         function ModuleCollection(rawRootModule) {
             this.register([], rawRootModule, false);
         }
+        ModuleCollection.prototype.getModule = function (path) {
+            return path.reduce(function (module, key) {
+                return module.getChild(key);
+            }, this.root);
+        };
+        ModuleCollection.prototype.getNamespace = function (path) {
+            var module = this.root;
+            return path.reduce(function (namespace, key) {
+                module = module.getChild(key);
+                return namespace + (module.namespaced ? key + '/' : '');
+            }, '');
+        };
         ModuleCollection.prototype.register = function (path, rawModule, runtime) {
+            var _this = this;
             if (runtime === void 0) { runtime = true; }
             var newModule = new Module(rawModule, runtime);
-            this.root = newModule;
+            if (path.length === 0) {
+                this.root = newModule;
+            }
+            else {
+                var parent = this.getModule(path.splice(0, -1));
+                parent.addChild(newModule, path[path.length - 1]);
+            }
+            if (rawModule.modules) {
+                forEachValue(rawModule.modules, function (rawChildModule, key) {
+                    _this.register(path.concat(key), rawChildModule, runtime);
+                });
+            }
         };
-        ModuleCollection.prototype.unregister = function () {
-            this.root = undefined;
+        ModuleCollection.prototype.unregister = function (path) {
+            var parent = this.getModule(path.slice(0, -1));
+            var key = path[path.length - 1];
+            var child = parent.getChild(key);
+            if (!child) {
+                {
+                    console.warn("[vuex] trying to unregister module '" + key + "', which is " +
+                        "not registered");
+                }
+                return;
+            }
+            if (!child.runtime) {
+                return;
+            }
+            parent.removeChild(key);
         };
         ModuleCollection.prototype.update = function (newModule) {
-            this.root.update(newModule);
+            update([], this.root, newModule);
+        };
+        ModuleCollection.prototype.isRegistered = function (path) {
+            var parent = this.getModule(path.slice(0, -1));
+            var key = path[path.length - 1];
+            return !!parent.hasChild(key);
         };
         return ModuleCollection;
     }());
+    function update(path, targetModule, newModule) {
+        targetModule.update(newModule);
+        // 更新子模块
+        if (newModule.modules) {
+            // 遍历modules选项
+            for (var key in newModule.modules) {
+                // 如果targetModule不存在key模块，则不做操作
+                if (!targetModule.getChild(key)) {
+                    {
+                        console.warn("[vuex] trying to add a new module '" + key + "' on hot reloading, " +
+                            'manual reload is needed');
+                    }
+                    return;
+                }
+                update(path.concat(key), targetModule.getChild(key), newModule.modules[key]);
+            }
+        }
+    }
 
     var Store = /** @class */ (function () {
         function Store(options) {
@@ -2196,11 +2284,14 @@
             this._wrappedGetters = Object.create(null);
             /* 存储分析后的modules */
             this._moduleCollection = new ModuleCollection(options);
+            this._modulesNamespaceMap = Object.create(null);
+            this._makeLocalGettersCache = Object.create(null);
             /* 订阅函数集合，Vuex提供了subscribe功能 */
             this._watcherVM = new Vue();
             var store = this;
             var state = this._moduleCollection.root.state;
             var _a = this, dispatch = _a.dispatch, commit = _a.commit;
+            console.log(store);
             /* 绑定作用域 */
             this.dispatch = function boundDispatch(type, payload) {
                 return dispatch.call(store, type, payload);
@@ -2208,7 +2299,7 @@
             this.commit = function boundCommit(type, payload, options) {
                 return commit.call(store, type, payload, options);
             };
-            installModule(this, this._moduleCollection.root);
+            installModule(this, state, [], this._moduleCollection.root);
             resetStoreVM(this, state);
         }
         Object.defineProperty(Store.prototype, "state", {
@@ -2265,36 +2356,58 @@
         }
         return { type: type, payload: payload, options: options };
     }
-    function installModule(store, module, hot) {
+    function installModule(store, rootState, path, module, hot) {
+        var isRoot = !path.length;
+        var namespace = store._moduleCollection.getNamespace(path);
+        if (module.namespaced) {
+            if (store._modulesNamespaceMap[namespace] && __DEV__) {
+                console.error("[vuex] duplicate namespace " + namespace + " for the namespaced module " + path.join('/'));
+            }
+            store._modulesNamespaceMap[namespace] = module;
+        }
+        var local = module.context = makeLocalContext(store, namespace, path);
         /* 将mutation集中到state._mutations中集中管理 */
         module.forEachMutation(function (mutation, key) {
-            var entry = store._mutations[key] || (store._mutations[key] = []);
+            var namespacedType = namespace + key;
+            var entry = store._mutations[namespacedType] || (store._mutations[namespacedType] = []);
             entry.push(function wrappedMutationHandler(payload) {
-                mutation.call(store, module.state, payload);
+                mutation.call(store, local.state, payload);
             });
         });
         module.forEachAction(function (mutation, key) {
-            var entry = store._actions[key] || (store._actions[key] = []);
+            var namespacedType = namespace + key;
+            var entry = store._actions[namespacedType] || (store._actions[namespacedType] = []);
             entry.push(function wrappedActionHandler(payload) {
-                mutation.call(store, {
-                    dispatch: store.dispatch,
-                    commit: store.commit,
-                    getters: store.getters,
-                    state: store.state
+                var res = mutation.call(store, {
+                    dispatch: local.dispatch,
+                    commit: local.commit,
+                    getters: local.getters,
+                    state: local.state,
+                    rootGetters: store.getters,
+                    rootState: store.state
                 }, payload);
+                if (!isPromise(res)) {
+                    // 转换为异步
+                    res = Promise.resolve(res);
+                }
+                return res;
             });
         });
         module.forEachGetter(function (getter, key) {
-            var entry = store._wrappedGetters[key];
+            var namespacedType = namespace + key;
+            var entry = store._wrappedGetters[namespacedType];
             if (entry) {
                 {
                     console.error("[vuex] duplicate getter key: " + key);
                 }
                 return;
             }
-            store._wrappedGetters[key] = function wrapperGetter() {
-                return getter(store.state, store.getters);
+            store._wrappedGetters[namespacedType] = function wrapperGetter() {
+                return getter(local.state, local.getters, store.state, store.getters);
             };
+        });
+        module.forEachChild(function (child, key) {
+            installModule(store, rootState, path.concat(key), child);
         });
     }
     function resetStoreVM(store, state, hot) {
@@ -2314,6 +2427,73 @@
             },
             computed: computed
         });
+    }
+    function makeLocalContext(store, namespace, path) {
+        var noNamespace = namespace === '';
+        var local = {
+            commit: noNamespace ? store.commit : function (_type, _payload, _options) {
+                var args = unifyObjectStyle(_type, _payload, _options);
+                var payload = args.payload, options = args.options;
+                var type = args.type;
+                if (!options || !options.root) {
+                    type = namespace + type;
+                    if ( !store._mutations[type]) {
+                        console.error("[vuex] unknown local mutation type: " + args.type + ", global type: " + type);
+                        return;
+                    }
+                }
+                store.commit(type, payload, options);
+            },
+            dispatch: noNamespace ? store.dispatch : function (_type, _payload, _options) {
+                var args = unifyObjectStyle(_type, _payload, _options);
+                var payload = args.payload, options = args.options;
+                var type = args.type;
+                if (!options || !options.root) {
+                    type = namespace + type;
+                    if ( !store._actions[type]) {
+                        console.error("[vuex] unknown local action type: " + args.type + ", global type: " + type);
+                        return;
+                    }
+                }
+                return store.dispatch(type, payload);
+            }
+        };
+        // getters and state object must be gotten lazily
+        // because they will be changed by vm update
+        Object.defineProperties(local, {
+            getters: {
+                get: noNamespace ? function () { return store.getters; } : function () { return makeLocalGetters(store, name); }
+            },
+            state: {
+                get: function () { return getNestedState(store.state, path); }
+            }
+        });
+        return local;
+    }
+    function makeLocalGetters(store, namespace) {
+        if (store._makeLocalGettersCache[namespace]) {
+            var gettersProxy_1 = {};
+            var splitPos_1 = namespace.length; // 带命名空间的模块的模块名
+            Object.keys(store.getters).forEach(function (type) {
+                // 不是以该模块名起始的getter,即不是该模块中的getter
+                if (type.slice(0, splitPos_1) !== namespace)
+                    return;
+                var localType = type.slice(splitPos_1);
+                Object.defineProperty(gettersProxy_1, localType, {
+                    get: function () { return store.getters[type]; },
+                    enumerable: true
+                });
+            });
+            store._makeLocalGettersCache[namespace] = gettersProxy_1;
+        }
+        return store._makeLocalGettersCache[namespace];
+    }
+    function getNestedState(state, path) {
+        if (!path)
+            return;
+        return path.reduce(function (state, key) {
+            return state[key];
+        }, state);
     }
 
     var Vuex = {
@@ -2353,11 +2533,30 @@
             });
         }
     };
+    var module = {
+        namespaced: true,
+        state: {
+            firstName: 'tom',
+            lastName: ' james'
+        },
+        getters: {
+            fullName: function (_a) {
+                var firstName = _a.firstName, lastName = _a.lastName;
+                return firstName + ' ' + lastName;
+            }
+        },
+        mutations: {
+            changeFirstName: function (state) {
+                state.firstName = state.firstName + ' D ';
+            }
+        }
+    };
     var store = new Vuex.Store({
         state: state,
         getters: getters,
         mutations: mutations,
-        actions: actions
+        actions: actions,
+        modules: { user: module }
     });
     var vm = new Vue({
         store: store,

@@ -46,13 +46,14 @@ export interface Commit {
   <P extends Payload>(payloadWithType: P, options?: CommitOptions): void;
 }
 
-
-/* action */
-export interface ActionContext<State, RootState> {
+export type LocalContext<S = any> = {
   dispatch: Dispatch;
   commit: Commit;
-  state: State;
+  state: S;
   getters: any;
+}
+/* action */
+export interface ActionContext<State, RootState> extends LocalContext<State> {
   rootState: RootState;
   rootGetters: any;
 }

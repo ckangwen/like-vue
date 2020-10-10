@@ -4,8 +4,11 @@ import { forEachValue } from '../helper';
 export class Module {
   state: any
   runtime: boolean
+  /* 嵌套子模块 */
   _children: any
+  /* module选项 */
   _rawModule: RawModule
+  context: any;
 
   constructor(rawModule: RawModule, runtime: boolean) {
     this.runtime = runtime
@@ -13,6 +16,26 @@ export class Module {
     this._rawModule = rawModule
     const rawState = rawModule.state
     this.state = (typeof rawState === 'function' ? rawState() : rawState) || {}
+  }
+
+  get namespaced() {
+    return this._rawModule.namespaced
+  }
+
+  addChild (module: Module, key: string) {
+    this._children[key] = module
+  }
+
+  removeChild (key: string) {
+    delete this._children[key]
+  }
+
+  getChild (key: string) {
+    return this._children[key]
+  }
+
+  hasChild (key: string) {
+    return key in this._children
   }
 
   /**
@@ -30,6 +53,10 @@ export class Module {
     if (rawModule.getters) {
       this._rawModule.getters = rawModule.getters
     }
+  }
+
+  forEachChild (fn: Function) {
+    forEachValue(this._children, fn)
   }
 
   forEachGetter(fn: Function) {

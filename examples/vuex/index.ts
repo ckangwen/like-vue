@@ -37,11 +37,34 @@ const actions = {
   }
 }
 
+type NameState = {
+  firstName: string
+  lastName: string
+}
+const module = {
+  namespaced: true,
+  state: {
+    firstName: 'tom',
+    lastName: ' james'
+  },
+  getters: {
+    fullName({ firstName, lastName }: NameState) {
+      return firstName + ' ' + lastName
+    }
+  },
+  mutations: {
+    changeFirstName(state: NameState) {
+      state.firstName = state.firstName + ' D '
+    }
+  }
+}
+
 const store = new Vuex.Store({
   state,
   getters,
   mutations,
-  actions
+  actions,
+  modules: { user: module }
 })
 
 
