@@ -136,6 +136,24 @@ function installModule (store: Store, rootState: any ,path: string[], module: Mo
     store._modulesNamespaceMap[namespace] = module
   }
 
+  /* 设置子模块中的state */
+  if (!isRoot && !hot) {
+    const parentState = getNestedState(rootState, path.slice(0, -1))
+    const moduleName = path[path.length - 1]
+
+    store._withCommit(() => {
+      if (__DEV__) {
+        if (moduleName in parentState) {
+          console.warn(
+            `[vuex] state field "${moduleName}" was overridden by a module with the same name at "${path.join('.')}"`
+          )
+        }
+      }
+      /* key为模块名，值为模块的state */
+      Vue.set(parentState, moduleName, module.state)
+    })
+  }
+
   const local = module.context = makeLocalContext(store, namespace, path)
 
   /* 将mutation集中到state._mutations中集中管理 */
@@ -195,6 +213,7 @@ function installModule (store: Store, rootState: any ,path: string[], module: Mo
     }
   })
 
+  /* 处理子模块 */
   module.forEachChild((child: Module, key: string) => {
     installModule(store, rootState, path.concat(key), child, hot)
   })
