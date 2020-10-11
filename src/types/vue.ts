@@ -72,3 +72,16 @@ export type VuePlugin = (plugin: VuePluginOptions, ...args: any[]) => VueCtor
 export type VueMixin = (mixin: ComponentOptions) => VueCtor
 
 export type VueExtend = (options: ExtendAPIOption) => VueCtor
+
+export type VueSetType = (target: any, key: string | number, value: any) => any
+export type VueDeleteType = (target: any, key: string | number) => void
+export type VueObservableType = (obj: any) => any
+export type VueUtilType = {
+  defineReactive: (
+    obj: Record<string, any>,
+    key: string,
+    val?: any,
+    customSetter?: PropertyDescriptor['set'],
+    shallow?: boolean
+  ) => any
+}

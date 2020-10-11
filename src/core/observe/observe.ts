@@ -5,7 +5,8 @@ import {
   hasOwn,
   isObject,
   isPlainObject,
-  __DEV__
+  __DEV__,
+  isPrimitive
 } from '@/shared'
 
 
@@ -147,7 +148,52 @@ function isObservable(value: any) {
   return false
 }
 
-/**
- * on   - getter => dep.depend() => watcher.deps.add(dep)
- * emit - update => run
- */
+export function set(target: any, key: string | number, value: any) {
+  if (__DEV__ && (!target || isPrimitive(target))) {
+    console.warn(`Cannot set reactive property on undefined, null, or primitive value: ${target}`)
+  }
+
+  if (Array.isArray(target) && typeof key === 'number' && key < target.length) {
+    target.length = Math.max(target.length, key)
+    target.splice(key, 1, value)
+    return value
+  }
+
+  if (key in target && !(key in Object.prototype)) {
+    target[key] = value
+    return value
+  }
+
+  const ob = (target as any).__ob__
+
+  if (!ob) {
+    target[key] = value
+    return value
+  }
+  defineReactive(ob.value, key as string, value)
+  ob.dep.notify()
+  return value
+}
+
+export function del(target: any, key: string | number) {
+  if (__DEV__ && (!target || isPrimitive(target))) {
+    console.warn(`Cannot delete reactive property on undefined, null, or primitive value: ${target}`)
+  }
+
+  if (Array.isArray(target) && typeof key === 'number' && key < target.length) {
+    target.splice(key, 1)
+    return
+  }
+
+  const ob = (target as any).__ob__
+
+  if (!hasOwn(target, (key as string))) {
+    return
+  }
+
+  delete target[key]
+  if (!ob) {
+    return
+  }
+  ob.dep.notify()
+}

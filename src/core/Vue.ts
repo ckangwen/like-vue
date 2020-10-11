@@ -1,8 +1,7 @@
 import { Watcher } from '@/core/observe';
-import { ComponentOptions, VuePlugin, VueExtend, VueMixin, VuePluginOptions } from '@/types'
+import { VueCtor, ComponentOptions, VuePlugin, VueExtend, VueMixin, VuePluginOptions, VueSetType, VueDeleteType, VueObservableType, VueUtilType } from '@/types'
 import { VNode, patch } from '@/core/vdom';
 import { initGlobalAPI } from './global-api/index';
-import { VueCtor } from '../types/vue';
 import { globalConfig } from '@/core/config';
 import {
   callHook,
@@ -18,7 +17,6 @@ import {
   noop,
   query,
   inBrowser,
-  isPromise
 } from '@/shared'
 
 let uid = 0
@@ -36,6 +34,10 @@ export class Vue {
   static super?: VueCtor
   static superOptions?: ComponentOptions
   static extendOptions?: ComponentOptions
+  static set: VueSetType
+  static delete: VueDeleteType
+  static observable: VueObservableType
+  static util: VueUtilType
   options?: ComponentOptions
   _watcher?: Watcher<Vue>
   _watchers?: Watcher<Vue>[]

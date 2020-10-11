@@ -5,6 +5,7 @@ import { initUse } from './use'
 import { initMixin } from './mixins'
 import { initExtend } from './extend'
 import { initAssetRegisters } from './assets'
+import { set, del, observe, defineReactive } from '@/core/observe/Observe'
 
 function setConfig(key: string, value: any) {
   if (key === 'set') {
@@ -37,4 +38,14 @@ export function initGlobalAPI(Vue: VueCtor) {
   initUse(Vue)
   initMixin(Vue)
   initExtend(Vue)
+
+  Vue.set = set
+  Vue.delete = del
+  Vue.observable = (obj: any) => {
+    observe(obj)
+    return obj
+  }
+  Vue.util = {
+    defineReactive
+  }
 }
