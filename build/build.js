@@ -1,12 +1,12 @@
-import { existsSync, mkdirSync, writeFile } from 'fs'
-import { relative } from 'path'
-import { gzip } from 'zlib'
-import { minify } from 'terser'
-import { rollup as _rollup } from 'rollup'
-import configs from './config'
+const fs = require('fs')
+const path = require('path')
+const zlib = require('zlib')
+const terser = require('terser')
+const rollup = require('rollup')
+const configs = require('./config')
 
-if (!existsSync('dist')) {
-  mkdirSync('dist')
+if (!fs.existsSync('dist')) {
+  fs.mkdirSync('dist')
 }
 
 function build (builds) {
@@ -29,14 +29,16 @@ function build (builds) {
 function buildEntry ({ input, output }) {
   const { file, banner } = output
   const isProd = /min\.js$/.test(file)
-  return _rollup(input)
+  return rollup
+    .rollup(input)
     .then(bundle => bundle.generate(output))
     .then(bundle => {
+      // console.log(bundle)
       const code = bundle.output[0].code
       if (isProd) {
         const minified =
           (banner ? banner + '\n' : '') +
-          minify(code, {
+          terser.minify(code, {
             toplevel: true,
             output: {
               ascii_only: true
@@ -56,7 +58,7 @@ function write (dest, code, zip) {
   return new Promise((resolve, reject) => {
     function report (extra) {
       console.log(
-        blue(relative(process.cwd(), dest)) +
+        blue(path.relative(process.cwd(), dest)) +
           ' ' +
           getSize(code) +
           (extra || '')
@@ -64,10 +66,10 @@ function write (dest, code, zip) {
       resolve()
     }
 
-    writeFile(dest, code, err => {
+    fs.writeFile(dest, code, err => {
       if (err) return reject(err)
       if (zip) {
-        gzip(code, (err, zipped) => {
+        zlib.gzip(code, (err, zipped) => {
           if (err) return reject(err)
           report(' (gzipped: ' + getSize(zipped) + ')')
         })

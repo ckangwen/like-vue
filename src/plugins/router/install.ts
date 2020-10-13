@@ -1,4 +1,3 @@
-import { __DEV__, noop, extend } from '@/shared'
 import { VueCtor } from '@/types'
 import { RouterView } from './components/view';
 import { defineReactive } from '@/core/observe/Observe';
@@ -12,7 +11,7 @@ export const install = function (Vue: VueCtor) {
   _Vue = Vue
 
   const registerInstance = (vm: any, callVal: any) => {
-    let hook = vm.$options.componentVnode?.data?.registerRouteInstance
+    const hook = vm.$options.componentVnode?.data?.registerRouteInstance
     typeof hook === 'function' && hook(vm, callVal) // callVal作为component instance插入route.matched.instances
   }
 

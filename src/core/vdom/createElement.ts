@@ -5,7 +5,6 @@ import { VNodeData, VNodeChildren } from '@/types'
 import {
   isHTMLTag,
   isDef,
-  __DEV__,
   isPrimitive
 } from '@/shared'
 
@@ -63,7 +62,7 @@ export function normalizeChildren(children: VNodeChildren) {
 /**
  * 省略了合并相邻文本节点的过程
  */
-function normalizeArrayChildren(children: VNodeChildren[], nestedIndex: string = ''): any[] {
+function normalizeArrayChildren(children: VNodeChildren[], nestedIndex = ''): any[] {
   return children.map((child, i) => {
     if (!isDef(child) || typeof child === 'boolean') return null
     if (isPrimitive(child)) {

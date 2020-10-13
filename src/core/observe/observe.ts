@@ -104,7 +104,7 @@ export function defineReactive(
       if (Dep.target) {
         dep.depend()
         if (childOb) {
-          childOb.dep!.depend()
+          childOb.dep?.depend()
           if (Array.isArray(value)) {
             dependArray(value)
           }

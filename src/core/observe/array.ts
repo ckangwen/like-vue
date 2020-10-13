@@ -15,11 +15,8 @@ const methodsToPatch = [
   'reverse'
 ]
 
-
-
 methodsToPatch.forEach(function(method)  {
   def(arrayMethods, method, function(this: any, ...args: any[]) {
-    const context: any = this
     const result = arrayMethods[method].apply(this, args)
     // 获取到Observer实例
     const ob: Observer = this.__ob__
@@ -35,7 +32,7 @@ methodsToPatch.forEach(function(method)  {
         break
     }
     if (inserted) ob.observeArray(inserted)
-    ob!.dep.notify() // 数组改变之后，向依赖发送消息
+    ob?.dep.notify() // 数组改变之后，向依赖发送消息
     return result
   })
 })

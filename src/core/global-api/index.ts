@@ -15,7 +15,7 @@ function setConfig(key: string, value: any) {
   deepset(globalConfig, key, value)
 }
 
-export function initGlobalAPI(Vue: VueCtor) {
+export function initGlobalAPI(Vue: VueCtor): void {
   Vue.options = Object.create(null)
   Vue.options._base = Vue
   ASSET_TYPES.forEach(type => {

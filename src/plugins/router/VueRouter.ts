@@ -1,4 +1,3 @@
-import { BaseHistory } from './history/base';
 import { Matcher } from './Matcher';
 import { RawLocation, Route, RouteRecord, NavigationGuard } from './types/router';
 import { HashHistory } from './history/hash';
@@ -24,7 +23,7 @@ export class VueRouter {
     this.resolveHooks = []
     this.afterHooks = []
     this.matcher = new Matcher(options.routes || [], this)
-    let mode = options.mode || 'hash'
+    const mode = options.mode || 'hash'
     this.mode = mode
     this.history = null as any
 
@@ -129,7 +128,7 @@ export class VueRouter {
     if (!route) {
       return []
     }
-    return [].concat.apply(
+    return [].concat(
       [],
       route.matched.map((m: RouteRecord) => {
         return Object.keys(m.components).map(key => {

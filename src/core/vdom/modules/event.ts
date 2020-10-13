@@ -16,19 +16,19 @@ function updateEventListeners(oldVnode: VNode, vnode: VNode) {
   if (!on) {
     for (name in oldOn) {
       listener = oldOn[name]
-      oldElm!.removeEventListener(name, listener, false)
+      oldElm?.removeEventListener(name, listener, false)
     }
   } else { // 存在新的事件监听器对象
     for (name in on) { // 添加监听器，存在于on但是不存在与oldOn
       if (!oldOn[name]) {
         listener = on[name]
-        elm!.addEventListener(name, listener, false)
+        elm?.addEventListener(name, listener, false)
       }
     }
     for (name in oldOn) { // 移除oldOn上不存在于on上的监听器
       listener = oldOn[name]
       if (!on[name]) {
-        oldElm!.removeEventListener(name, listener, false)
+        oldElm?.removeEventListener(name, listener, false)
       }
     }
   }

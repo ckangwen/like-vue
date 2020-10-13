@@ -6,7 +6,6 @@ export function initExtend(Vue: VueCtor): void {
   Vue.cid = 0
   let cid = 1
   Vue.extend = function(extendOptions: ExtendAPIOption = {}) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const Super = this
     const name = extendOptions.name || (Super as VueCtor).options.name
     const Sub = extendClass(Super, Super.prototype, (key) => {

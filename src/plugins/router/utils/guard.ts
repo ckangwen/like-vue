@@ -1,6 +1,6 @@
 import { Vue } from '@/core/Vue'
 import { flatten, flatMapComponents } from './resolve-components';
-import { RouteRecord, NavigationGuard, Route, MatchedComponentConvertFn, ComponentNavigationGuardKeys, NavigationGuardCallback } from '../types/router';
+import { RouteRecord, NavigationGuard, Route, ComponentNavigationGuardKeys, NavigationGuardCallback } from '../types/router';
 import { Dictionary } from '../types/helper';
 
 type GuardBindFunction = (guard: NavigationGuard, instance: Vue, matched: RouteRecord, key: string) => any
@@ -76,9 +76,10 @@ function extractInComponentGuards(
  */
 const bindGuard: GuardBindFunction = (guard: NavigationGuard, instance: Vue) => {
   if (instance) {
-    return function boundRouteGuard() {
-      return guard.apply(instance, arguments as any)
+    const boundRouteGuard: NavigationGuard = (to, from, next) => {
+      return guard.call(instance, to, from, next)
     }
+    return boundRouteGuard
   }
 }
 

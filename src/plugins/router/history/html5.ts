@@ -1,7 +1,7 @@
 import { BaseHistory } from "./base";
 
 export class HTML5History extends BaseHistory {
-  constructor(router: any, base: string = '/', fallback?: Function) {
+  constructor(router: any, base = '/', fallback?: Function) {
     super(router, base)
   }
   getCurrentLocation (): string {

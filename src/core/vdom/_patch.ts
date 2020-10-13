@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { VNode } from './vnode';
 import { domApi } from './dom-api';
 import { isPrimitive } from '@/shared'
@@ -32,7 +33,7 @@ const callPatchHook = (obj: ModuleHookSet | ModuleHookSet[] = {}, hook: ModuleHo
       callPatchHook(ctx, hook, ...args)
     })
   } else {
-    let fn = obj[hook]
+    const fn = obj[hook]
     if (fn instanceof Set) {
       fn.forEach((f: any) => {
         (typeof f === 'function') && f(...args)
@@ -125,8 +126,8 @@ export function initPatch(modules: ModuleHooks[]) {
     parentEl?: Node,
     refEl?: Node
   ): Node | null {
-    let { data = {}, tag } = vnode
-    let children = vnode.children as VNode[]
+    const { data = {}, tag } = vnode
+    const children = vnode.children as VNode[]
     callPatchHook([cbs, (data.hook || {})], 'pre', vnode, parentEl, refEl)
 
     callPatchHook((data.hook || {}), 'init', vnode, false)
@@ -262,7 +263,7 @@ export function initPatch(modules: ModuleHooks[]) {
     const ch = vnode.children as VNode[]
 
     const data = vnode.data || {}
-    let dataHook = data.hook || {}
+    const dataHook = data.hook || {}
 
     /**
      * 只有组件VNode才会有prepatch hook
@@ -296,7 +297,6 @@ export function initPatch(modules: ModuleHooks[]) {
   return function patch(
     oldVnode: VNode | Node,
     vnode: VNode,
-    hyphenate?: boolean
   ) {
     if (!oldVnode) {
       createElm(vnode)

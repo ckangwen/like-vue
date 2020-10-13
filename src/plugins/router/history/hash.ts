@@ -2,7 +2,7 @@ import { BaseHistory } from './base';
 import { pushState, replaceState } from '../utils/pushstate';
 import { RawLocation, Route } from '../types/router';
 export class HashHistory extends BaseHistory {
-  constructor(router: any, base: string = '/', fallback?: Function) {
+  constructor(router: any, base = '/', fallback?: Function) {
     super(router, base)
     ensureSlash()
   }

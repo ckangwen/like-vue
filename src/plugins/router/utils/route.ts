@@ -7,7 +7,7 @@ export function createRoute(
   location?: Location,
   redirectedFrom?: Location
 ) {
-  let query = clone(location?.query || {})
+  const query = clone(location?.query || {})
   const route: Route = {
     name: location?.name || (record && record.name),
     meta: (record && record.meta) || {},

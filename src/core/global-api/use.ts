@@ -1,4 +1,3 @@
-import { Vue } from '@/core'
 import { VuePluginOptions, VueCtor } from '@/types'
 
 export function initUse(Vue: VueCtor) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Vue } from '@/core/Vue';
 import { START } from '../utils/route';
 import { inBrowser } from '../utils/helper';
@@ -12,7 +13,7 @@ export class BaseHistory {
   current: Route
   pending?: Route | null = null // 正在处理中的路由对象，如果没有激活的路由，则为null
   cb: Function | null = null
-  ready: boolean = false
+  ready = false
   readyCbs: Function[] = []
   readyErrorCbs: Function[] = []
   errorCbs: Function[] = []
@@ -26,16 +27,16 @@ export class BaseHistory {
   }
 
   /* 需要继承实现 */
-  setupListeners() { }
-  getCurrentLocation() { }
-  go(n: number) { }
-  push(loc: RawLocation, onComplete?: Function, onAbort?: Function) { }
+  setupListeners() {/** */ }
+  getCurrentLocation() {/** */ }
+  go(n: number) {/** */ }
+  push(loc: RawLocation, onComplete?: Function, onAbort?: Function) {/** */ }
   replace(
     loc: RawLocation,
     onComplete?: Function,
     onAbort?: Function
-  ) { }
-  ensureURL(push?: boolean) { }
+  ) {/** */ }
+  ensureURL(push?: boolean) {/** */ }
 
   /* 通用方法实现 */
   listen(cb: Function) {
@@ -63,7 +64,7 @@ export class BaseHistory {
     onComplete?: Function,
     onAbort?: Function
   ) {
-    let route = this.router.match(location, this.current)
+    const route = this.router.match(location, this.current)
     const prev = this.current
 
     this.confirmTransition(

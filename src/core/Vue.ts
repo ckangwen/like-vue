@@ -19,6 +19,10 @@ import {
   inBrowser,
 } from '@/shared'
 
+import computedPlugin from '@/plugins/computed'
+import watchPlugin from '@/plugins/watch'
+import componentsPlugin from '@/plugins/components'
+
 let uid = 0
 
 export class Vue {
@@ -48,7 +52,7 @@ export class Vue {
   _self: Vue
   _data?: Record<string, any>
   _events: any;
-  _isMounted: boolean = false
+  _isMounted = false
 
   $el: Element | null
   $parent: Vue | null = null
@@ -201,9 +205,9 @@ export class Vue {
   }
   $once(event: string, fn: Function) {
     const vm: Vue = this
-    function on () {
+    function on (...args: any[]) {
       vm.$off(event, on)
-      fn.apply(vm, arguments)
+      fn.apply(vm, ...args)
     }
     on.fn = fn
     vm.$on(event, on)
@@ -228,3 +232,7 @@ export class Vue {
 }
 
 initGlobalAPI(Vue)
+
+Vue.use(computedPlugin)
+Vue.use(watchPlugin)
+Vue.use(componentsPlugin)

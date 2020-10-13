@@ -8,7 +8,7 @@ export function createElement(context: Vue, tag: string, data: VNodeData, childr
   let vnode: VNode | undefined | null
   if (typeof tag === 'string' && !isHTMLTag(tag)) {
     const components = context.$options.components
-    let CompOptions = resolveGlobalComponents(components, tag)
+    const CompOptions = resolveGlobalComponents(components, tag)
     if (CompOptions) {
       vnode = createComponent(CompOptions, data, context, (children as VNode[]), tag)
     }
@@ -29,19 +29,19 @@ export function initInternalComponent(vm: Vue, options: ComponentOptions) {
     opts.parent = options.parent
 
     /* 存储该组件的VNode结构 */
-    const parentVnode = opts.componentVnode = options.componentVnode!
+    const parentVnode = opts.componentVnode = options.componentVnode
 
     /* 组件的附带信息 */
-    const componentOptions = parentVnode.componentOptions
+    const componentOptions = parentVnode?.componentOptions
     /* 组件上的事件 */
     opts._parentListeners = options.listeners
     /* 初始化option.propsData，props的值 */
-    opts.propsData = componentOptions.propsData
+    opts.propsData = componentOptions?.propsData
     /* 记录组件的子元素，作为插槽使用 */
     opts.renderChildren = options.children
 
     // 记录组件名，在formatComponentName中使用
-    opts._componentTag = componentOptions.tag
+    opts._componentTag = componentOptions?.tag
     if (options.render) {
       opts.render = options.render
     }

@@ -4,7 +4,7 @@ import { hasOwn, LIFECYCLE_HOOKS, extend } from '@/shared'
 import { globalConfig } from '../config'
 import { VueCtor } from '../../types/vue';
 
-let strategies = globalConfig.optionMergeStrategies
+const strategies = globalConfig.optionMergeStrategies
 
 LIFECYCLE_HOOKS.forEach(hook => {
   strategies[hook] = mergeHook

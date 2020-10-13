@@ -1,5 +1,4 @@
 import { Vue } from '@/core/Vue'
-import { __DEV__ } from '@/shared'
 import { VueCtor } from '@/types';
 import { initProps } from './props';
 import { initSlots } from './slots';

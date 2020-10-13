@@ -1,7 +1,7 @@
 import { Vue} from '@/core/Vue'
 import { observe } from '@/core/observe'
 import { createElement } from '@/core/vdom'
-import { ComponentOptions, LiftcycleEnum } from '@/types'
+import { LiftcycleEnum } from '@/types'
 import {
   isPlainObject,
   __DEV__,
@@ -25,7 +25,7 @@ export function initEvent(vm: Vue) {
 
 export function initLifecycle(vm: Vue) {
   vm._isMounted = false
-  let parent = vm.$options.parent
+  const parent = vm.$options.parent
   vm.$parent = parent
 }
 

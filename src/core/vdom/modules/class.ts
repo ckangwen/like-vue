@@ -16,7 +16,7 @@ function updateClass(oldVnode: VNode, vnode: VNode) {
     return
   }
 
-  let cls = stringifyClass(data.class) as string
+  const cls = stringifyClass(data.class) as string
 
   (el as Element).setAttribute('class', cls)
 }

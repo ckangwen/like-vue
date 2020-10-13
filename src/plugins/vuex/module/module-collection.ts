@@ -25,7 +25,7 @@ export default class ModuleCollection {
     }, '')
   }
 
-  register(path: string[], rawModule: RawModule, runtime: boolean = true) {
+  register(path: string[], rawModule: RawModule, runtime = true) {
     const newModule = new Module(rawModule, runtime)
     if (path.length === 0) {
       this.root = newModule

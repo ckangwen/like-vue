@@ -1,5 +1,5 @@
 import { Vue } from '@/core/Vue'
-import { ModuleHooks, ModuleHookEnum, VueCtor, On, ComponentOptions, PlainObject, VNodeData } from '@/types'
+import { ModuleHooks, ModuleHookEnum, ComponentOptions, VNodeData } from '@/types'
 import { VNode } from '@/core/vdom/vnode'
 import { isObject, __DEV__ } from '@/shared'
 import { extractPropsFromVNodeData } from './helper/extra-props';

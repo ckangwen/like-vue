@@ -23,7 +23,7 @@ export function createRouteMap(
   })
 
   // 确保通配符路由总是在最后
-  let index = pathList.indexOf('*')
+  const index = pathList.indexOf('*')
   if (index > -1) {
     pathList.push(
       pathList.splice(index, 1)[0]

@@ -1,7 +1,7 @@
 import { Vue } from '@/core/Vue'
-import { isObject, __DEV__ } from '@/shared'
+import { __DEV__ } from '@/shared'
 
-import { LocalContext, StoreOptions, CommitOptions, Payload, RawModule } from './types/store';
+import { LocalContext, StoreOptions, CommitOptions, Payload } from './types/store';
 import { assert, forEachValue, partial } from './helper';
 import ModuleCollection from './module/module-collection';
 import { Module } from './module/module';

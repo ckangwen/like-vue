@@ -1,9 +1,9 @@
-import path from 'path'
-import typescript from 'rollup-plugin-typescript';
-import replace from 'rollup-plugin-replace';
-import alias from 'rollup-plugin-alias'
-import nodeResolve from 'rollup-plugin-node-resolve'
-import buble from 'rollup-plugin-buble'
+const path = require('path')
+const typescript = require('rollup-plugin-typescript')
+const buble = require('rollup-plugin-buble')
+const alias = require('rollup-plugin-alias')
+const nodeResolve = require('rollup-plugin-node-resolve')
+const replace = require('rollup-plugin-replace')
 
 const resolve = (filepath) => path.resolve(__dirname, '../', filepath)
 const banner =
@@ -79,7 +79,7 @@ function genConfig(options) {
     }))
   }
 
-  if (opts.transpile !== false) {
+  if (options.transpile !== false) {
     config.input.plugins.push(buble())
   }
 

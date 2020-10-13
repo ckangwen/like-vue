@@ -1,6 +1,6 @@
 import { Vue } from '@/core/Vue'
 import { Watcher } from '@/core'
-import { __DEV__, isPlainObject, isObject, noop } from '@/shared'
+import { isPlainObject, isObject, noop } from '@/shared'
 import { VueCtor, PlainObject } from '@/types'
 
 type VueInstance = {

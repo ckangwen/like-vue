@@ -1,5 +1,5 @@
 import { VNodeData, PlainObject } from '@/types'
-import { __DEV__, hasOwn, hyphenate, isDef } from '@/shared'
+import { hasOwn, hyphenate, isDef } from '@/shared'
 
 export function extractPropsFromVNodeData(data: VNodeData, Ctor: any, tag?: string) {
   const propOptions = Ctor.options.props

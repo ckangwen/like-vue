@@ -100,16 +100,16 @@ export class Watcher<T extends withWatcher> {
      * Dep.target是一个Watcher，表示该Watcher正在访问依赖
      */
     pushTarget(this)
-    const value = this.getter!.call(this.vm, this.vm)
+    const value = this.getter.call(this.vm, this.vm)
     popTarget()
     this.cleanupDeps()
     return value
   }
 
   cleanupDeps() {
-    let i = this.deps!.length || 0
+    let i = this.deps.length || 0
     while (i--) {
-      const dep = this.deps![i]
+      const dep = this.deps[i]
       // 遍历deps，找出不在newDeps里的dep
       if (!((this.newDepIds)?.has(dep.id))) {
         dep.removeSub(this)
@@ -123,7 +123,7 @@ export class Watcher<T extends withWatcher> {
     tmp = this.deps
     this.deps = this.newDeps
     this.newDeps = tmp
-    this.newDeps!.length = 0
+    this.newDeps.length = 0
   }
 
   /**
@@ -202,7 +202,18 @@ export class Watcher<T extends withWatcher> {
       this.deps[i].depend()
     }
   }
-  teardown() { }
+  teardown() {
+    if (this.active) {
+      if (!this.vm._isBeingDestroyed) {
+        this.vm._watchers && remove(this.vm._watchers, this)
+      }
+      let i = this.deps.length
+      while (i--) {
+        this.deps[i].removeSub(this)
+      }
+      this.active = false
+    }
+  }
 }
 
 /******** helper *******/
