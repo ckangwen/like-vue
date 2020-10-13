@@ -421,10 +421,6 @@
         }
         return false;
     }
-    /**
-     * on   - getter => dep.depend() => watcher.deps.add(dep)
-     * emit - update => run
-     */
 
     var uid$1 = 0;
     var Watcher = /** @class */ (function () {
@@ -1683,6 +1679,163 @@
         });
     }
 
+    var Observer$1 = /** @class */ (function () {
+        function Observer(value) {
+            this.value = value;
+            this.dep = new Dep();
+            def(value, '__ob__', this);
+            if (Array.isArray(value)) {
+                value.__proto__ = arrayMethods;
+                this.observeArray(value);
+            }
+            else {
+                this.walk(value);
+            }
+        }
+        Observer.prototype.walk = function (obj) {
+            Object.keys(obj).forEach(function (key) {
+                defineReactive$1(obj, key);
+            });
+        };
+        Observer.prototype.observeArray = function (items) {
+            items.forEach(function (item) {
+                observe$1(item);
+            });
+        };
+        return Observer;
+    }());
+    function dependArray$1(values) {
+        values.forEach(function (value) {
+            if (isObservable$1(value)) {
+                value.__ob__.dep.depend();
+            }
+            if (Array.isArray(value))
+                dependArray$1(value);
+        });
+    }
+    function observe$1(value) {
+        /* 值类型不用进行响应式转换 */
+        if (!isObject(value))
+            return;
+        if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer$1) {
+            return value.__ob__;
+        }
+        if ((Array.isArray(value) || isPlainObject(value)) &&
+            Object.isExtensible(value)) {
+            return new Observer$1(value);
+        }
+    }
+    function defineReactive$1(obj, key, val, customSetter, shallow // 如果设置为true，则不会对val进行响应式处理，即只对obj的key属性的值响应式处理
+    ) {
+        var dep = new Dep();
+        var property = Object.getOwnPropertyDescriptor(obj, key);
+        if (property && property.configurable === false) {
+            return;
+        }
+        var getter = property && property.get;
+        var setter = property && property.set;
+        val = val ? val : obj[key];
+        var childOb = !shallow && observe$1(val);
+        Object.defineProperty(obj, key, {
+            enumerable: true,
+            configurable: true,
+            get: function reactiveGetter() {
+                var value = getter ? getter.call(obj) : val;
+                /**
+                 * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
+                 * 而事情发生在reactiveGetter中，Watcher正在读取obj对象
+                 * 那么就通知Watcher将该对象进行收集(在Watcher中会进一步判断是否该对象已经被收集)
+                 * 收集的是该状态的Dep，因为dep中存放着Watcher(订阅者)列表
+                 *
+                 * 与订阅观察者模式的不同是，前者是把所有的事件以及回调存放在一个全局统一变量中，通过事件名触发事件，依次调用回调函数列表中属于该事件名的回调函数
+                 * 而在vue中，每个状态都有一份独立的Dep，其中存放的是Watcher，在状态发生变化时，会遍历状态的Dep，触发Watcher的update()方法
+                 */
+                if (Dep.target) {
+                    dep.depend();
+                    if (childOb) {
+                        childOb.dep.depend();
+                        if (Array.isArray(value)) {
+                            dependArray$1(value);
+                        }
+                    }
+                }
+                return value;
+            },
+            set: function reactiveSetter(newVal) {
+                var value = getter ? getter.call(obj) : val;
+                if (newVal === value || (newVal !== newVal && value !== value)) {
+                    return;
+                }
+                if ( customSetter) {
+                    customSetter(newVal);
+                }
+                if (getter && !setter)
+                    return;
+                if (setter) {
+                    setter.call(obj, newVal);
+                }
+                else {
+                    val = newVal;
+                }
+                childOb = !shallow && observe$1(newVal);
+                // 依赖变化后，触发更新，通知Dep类调用notify来触发所有Watcher对象的update方法更新对应视图
+                /**
+                 * 获取到观察该状态的所有Watcher
+                 * 触发更新
+                 * (观察者模式中是调用订阅列表中的函数)
+                 */
+                dep.notify();
+            }
+        });
+    }
+    /*  helper */
+    function isObservable$1(value) {
+        if (value && value.__ob__) {
+            return true;
+        }
+        return false;
+    }
+    function set(target, key, value) {
+        if ( (!target || isPrimitive(target))) {
+            console.warn("Cannot set reactive property on undefined, null, or primitive value: " + target);
+        }
+        if (Array.isArray(target) && typeof key === 'number' && key < target.length) {
+            target.length = Math.max(target.length, key);
+            target.splice(key, 1, value);
+            return value;
+        }
+        if (key in target && !(key in Object.prototype)) {
+            target[key] = value;
+            return value;
+        }
+        var ob = target.__ob__;
+        if (!ob) {
+            target[key] = value;
+            return value;
+        }
+        defineReactive$1(ob.value, key, value);
+        ob.dep.notify();
+        return value;
+    }
+    function del(target, key) {
+        if ( (!target || isPrimitive(target))) {
+            console.warn("Cannot delete reactive property on undefined, null, or primitive value: " + target);
+        }
+        if (Array.isArray(target) && typeof key === 'number' && key < target.length) {
+            target.splice(key, 1);
+            return;
+        }
+        var ob = target.__ob__;
+        if (!hasOwn(target, key)) {
+            return;
+        }
+        delete target[key];
+        if (!ob) {
+            return;
+        }
+        ob.dep.notify();
+    }
+
     function setConfig(key, value) {
         if (key === 'set') {
             console.warn('Do not replace the set method');
@@ -1708,6 +1861,15 @@
         initUse(Vue);
         initMixin(Vue);
         initExtend(Vue);
+        Vue.set = set;
+        Vue.delete = del;
+        Vue.observable = function (obj) {
+            observe$1(obj);
+            return obj;
+        };
+        Vue.util = {
+            defineReactive: defineReactive$1
+        };
     }
 
     var uid$2 = 0;
@@ -2627,6 +2789,153 @@
         return true;
     }
 
+    function flatten(arr) {
+        return Array.prototype.concat.apply([], arr);
+    }
+    function flatMapComponents(matched, fn) {
+        return flatten(matched.map(function (m) {
+            return Object.keys(m.components).map(function (name) {
+                return fn(m.components[name], m.instances[name], m, name);
+            });
+        }));
+    }
+
+    /**
+     * beforeRouteLeave
+     * beforeRouteUpdate
+     * beforeRouteEnter
+     * 都是组件选项
+     * 需要从组件的$options中获取
+     * */
+    function extractEnterGuards(activated, cbs, isValid) {
+        return extractInComponentGuards(activated, 'beforeRouteEnter', function (guard, _, match, key) {
+            return bindBeforeRouteEnterGuard(guard, match, key, cbs, isValid);
+        });
+    }
+    function extractUpdateHooks(updated) {
+        return extractInComponentGuards(updated, 'beforeRouteUpdate', bindGuard);
+    }
+    function extractLeaveGuards(deactivated) {
+        return extractInComponentGuards(deactivated, 'beforeRouteLeave', bindGuard, true);
+    }
+    /**
+     * 获取路由记录中匹配到的组件的路由导航
+     * @param {Function} bind：为了使路由导航方法能在正确的作用域中执行
+     * @param {Boolean} reverse 是否反转路由导航执行的顺序，默认父级组件的导航守卫先调用
+     */
+    function extractInComponentGuards(records, name, bind, reverse) {
+        /* 获取路由记录中所有组件的组件导航守卫 */
+        var guards = flatMapComponents(records, function (component, instance, matched, key) {
+            var guard = extractComponentGuard(component, name);
+            var res = [];
+            if (guard) {
+                if (Array.isArray(guard)) {
+                    res = guard.map(function (g) { return bind(g, instance, matched, key); }).filter(function (t) { return t; });
+                }
+                else {
+                    res = bind(guard, instance, matched, key);
+                }
+            }
+            return res;
+        });
+        return flatten(reverse ? guards.reverse() : guards);
+    }
+    /**
+     * 将导航守卫方法绑定到vue实例中，保证作用域
+     */
+    var bindGuard = function (guard, instance) {
+        if (instance) {
+            return function boundRouteGuard() {
+                return guard.apply(instance, arguments);
+            };
+        }
+    };
+    /**
+     * beforeRouteEnter守卫与常规的不同，他无法访问this(因为新的页面组件尚未被创建)，需要添加额外的功能
+     * 允许给next传递一个回调函数，在导航被确认的时候执行回调，并且把组件实例作为回调方法的参数
+     *
+     * @param { NavigationGuard } guard: 具体组件中的beforeRouteEnter方法
+     */
+    function bindBeforeRouteEnterGuard(guard, match, key, cbs, isValid) {
+        // beforeRouteEnter(to, from, next) {}
+        return function routeEnterGuard(to, from, next) {
+            // 调用beforeRouteEnter，可以给next传递一个回调(即此处的cb)
+            return guard(to, from, function (cb) {
+                if (typeof cb === 'function') {
+                    cbs.push(function () {
+                        poll(cb, match.instances, key, isValid);
+                    });
+                }
+                next(cb);
+            });
+        };
+    }
+    /**
+     * 从组件实例中获取指定的option
+     */
+    function extractComponentGuard(component, name) {
+        if (typeof component === 'object') {
+            component = Vue.extend(component);
+        }
+        return component.options[name];
+    }
+    function poll(cb, instances, key, isValid) {
+        if (instances[key]
+        // !instances[key]._isBeingDestroyed // do not reuse being destroyed instance
+        ) {
+            /**
+             * next(vm => {})
+             * 将组件实例注入回调函数中
+             */
+            cb(instances[key]);
+        }
+        else if (isValid()) {
+            setTimeout(function () {
+                poll(cb, instances, key, isValid);
+            }, 16);
+        }
+    }
+
+    var NavigationFailureType = {
+        redirected: 2,
+        aborted: 4,
+        cancelled: 8,
+        duplicated: 16
+    };
+    function isError(err) {
+        return Object.prototype.toString.call(err).indexOf('Error') > -1;
+    }
+    function createRouterError(from, to, type, message) {
+        var error = new Error(message);
+        error._isRouter = true;
+        error.from = from;
+        error.to = to;
+        error.type = type;
+        return error;
+    }
+    function createNavigationRedirectedError(from, to) {
+        return createRouterError(from, to, NavigationFailureType.redirected, "Redirected when going from \"" + from.fullPath + "\" to \"" + stringifyRoute(to) + "\" via a navigation guard.");
+    }
+    function createNavigationCancelledError(from, to) {
+        return createRouterError(from, to, NavigationFailureType.cancelled, "Navigation cancelled from \"" + from.fullPath + "\" to \"" + to.fullPath + "\" with a new navigation.");
+    }
+    function createNavigationAbortedError(from, to) {
+        return createRouterError(from, to, NavigationFailureType.aborted, "Navigation aborted from \"" + from.fullPath + "\" to \"" + to.fullPath + "\" via a navigation guard.");
+    }
+    var propertiesToLog = ['params', 'query', 'hash'];
+    function stringifyRoute(to) {
+        if (typeof to === 'string')
+            return to;
+        if ('path' in to)
+            return to.path;
+        var location = {};
+        propertiesToLog.forEach(function (key) {
+            if (key in to)
+                location[key] = to[key];
+        });
+        return JSON.stringify(location, null, 2);
+    }
+
     var BaseHistory = /** @class */ (function () {
         function BaseHistory(router, base) {
             this.pending = null; // 正在处理中的路由对象，如果没有激活的路由，则为null
@@ -2678,6 +2987,10 @@
                 _this.updateRoute(route);
                 onComplete && onComplete(route);
                 _this.ensureURL();
+                /* 路由跳转结束之后，调用 afterEach 导航守卫 */
+                _this.router.afterHooks.forEach(function (hook) {
+                    hook && hook(route, prev);
+                });
                 // fire ready cbs once
                 if (!_this.ready) {
                     _this.ready = true;
@@ -2691,20 +3004,111 @@
                 }
             });
         };
-        // TODO 未实现路由守卫
         /**
          * 进行路由跳转
          */
         BaseHistory.prototype.confirmTransition = function (route, onComplete, onAbort) {
+            var _this = this;
             // 当前路径所表示的路由对象
             var current = this.current;
             this.pending = route;
+            var abort = function (err) { onAbort && onAbort(err); };
             // if (isSameRoute(route, current)) {}
             var _a = this.resovleQueue(route), updated = _a.updated, deactivated = _a.deactivated, activated = _a.activated;
-            // 解析activated数组中所有routeRecord里的异步路由组件
-            if (this.pending !== route) ;
-            this.pending = null;
-            onComplete(route);
+            /**
+             * 路由导航被调用的顺序为
+             * 失活组件中的beforeRouteLeave
+             * 全局beforeEach
+             * 重用组件中的beforeRouteUpdate
+             * 路由配置中的beforeEnter
+             * 异步路由组件(TODO 暂未实现)
+             *
+             * 激活组件中的beforeRouteEnter
+             * 全局beforeResolve
+             * 全局afterEach
+             */
+            var queue = [].concat(extractLeaveGuards(deactivated), // 失活组件中的beforeRouteLeave
+            this.router.beforeHooks, // 全局beforeEach
+            extractUpdateHooks(updated), // 重用组件中的beforeRouteUpdate
+            activated.map(function (m) { return m.beforeEnter; }).filter(function (item) { return item; }));
+            var iterator = function (hook) {
+                if (_this.pending !== route) {
+                    return abort(createNavigationCancelledError(current, route));
+                }
+                /**
+                 * route: 将要跳转的路由
+                 * current: 当前的路由
+                 * (to) => void: 在导航守卫中调用的next，参数to即是传给next的参数,egs: next('/login')
+                 * */
+                hook(route, current, function (to) {
+                    if (to === false) {
+                        _this.ensureURL(true);
+                        abort(createNavigationAbortedError(current, route));
+                    }
+                    else if (isError(to)) {
+                        _this.ensureURL(true);
+                        abort(to);
+                    }
+                    else if (typeof to === 'string' ||
+                        (typeof to === 'string' || (typeof to.path === 'string' || typeof to.name === 'string'))) {
+                        abort(createNavigationRedirectedError(current, route));
+                        if (typeof to === 'object' && to.replace) {
+                            _this.replace(to);
+                        }
+                        else {
+                            _this.push(to);
+                        }
+                    }
+                    else ;
+                });
+            };
+            var _confirmTransition = function () {
+                if (_this.pending !== route) {
+                    return abort(createNavigationCancelledError(current, route));
+                }
+                _this.pending = null;
+                onComplete(route);
+            };
+            /* 没有路由导航 */
+            if (queue.length < 1) {
+                _confirmTransition();
+                return;
+            }
+            // TODO 没有使用异步遍历
+            queue.forEach(function (guardFn, index) {
+                guardFn && iterator(guardFn);
+                if (index === queue.length - 1) {
+                    /**
+                     * beforeRouteEnter (to, from, next)
+                     * beforeRouteEnter期间，无法获取到路由实例，可以通过传一个回调给 next来访问组件实例
+                     * 在导航被确认的时候执行回调
+                     */
+                    var postEnterCbs_1 = [];
+                    // 判断前后跳转的是否是同一个路由
+                    var isValid = function () { return _this.current === route; };
+                    /* 获取activated匹配的组件中的beforeRouteEnter */
+                    var beforeRouteEnterGuards = extractEnterGuards(activated, postEnterCbs_1, isValid);
+                    var guards_1 = beforeRouteEnterGuards.concat(_this.router.resolveHooks);
+                    /* 此时新登场的页面组件尚未被创建 */
+                    if (guards_1.length < 1) {
+                        _confirmTransition();
+                        return;
+                    }
+                    guards_1.forEach(function (gFn, idx) {
+                        gFn && iterator(gFn);
+                        if (idx === guards_1.length - 1) {
+                            _confirmTransition();
+                            /* 确认导航且创建组件之后，调用beforeRouteEnter的回调函数 */
+                            if (_this.router.app) {
+                                // TODO Vue.$nextTick
+                                postEnterCbs_1.forEach(function (cb) {
+                                    cb();
+                                });
+                            }
+                        }
+                    });
+                }
+            }); // 路由导航遍历结束
         };
         BaseHistory.prototype.teardown = function () {
             this.listeners.forEach(function (cleanupListener) {
@@ -2863,8 +3267,10 @@
         function VueRouter(options) {
             if (options === void 0) { options = {}; }
             this.app = null;
-            this.apps = [];
             this.options = options;
+            this.beforeHooks = [];
+            this.resolveHooks = [];
+            this.afterHooks = [];
             this.matcher = new Matcher(options.routes || [], this);
             var mode = options.mode || 'hash';
             this.mode = mode;
@@ -2893,7 +3299,6 @@
         };
         VueRouter.prototype.init = function (app) {
             var _this = this;
-            this.apps.push(app);
             if (this.app) {
                 return;
             }
@@ -2903,10 +3308,9 @@
                 history.setupListeners();
             };
             history.transitionTo(history.getCurrentLocation(), setupListeners, setupListeners);
+            /* 在完成路由跳转之后执行listen中的回调，更新$route */
             history.listen(function (route) {
-                _this.apps.forEach(function (app) {
-                    app._route = route;
-                });
+                _this.app._route = route;
             });
         };
         VueRouter.prototype.push = function (location, onComplete, onAbort) {
@@ -2946,7 +3350,7 @@
             var route = this.match(location, current);
             var fullPath = route.redirectedFrom || route.fullPath;
             var base = this.history.base;
-            var href = this.createHref(base, fullPath, this.mode);
+            var href = this.createHref(base, fullPath);
             return {
                 location: location,
                 route: route,
@@ -2969,9 +3373,26 @@
                 });
             }));
         };
-        VueRouter.prototype.createHref = function (base, fullPath, mode) {
-            var path = mode === 'hash' ? '#' + fullPath : fullPath;
+        VueRouter.prototype.beforeEach = function (fn) {
+            return this.registerHook(this.beforeHooks, fn);
+        };
+        VueRouter.prototype.beforeResolve = function (fn) {
+            return this.registerHook(this.resolveHooks, fn);
+        };
+        VueRouter.prototype.afterEach = function (fn) {
+            return this.registerHook(this.afterHooks, fn);
+        };
+        VueRouter.prototype.createHref = function (base, fullPath) {
+            var path = this.mode === 'hash' ? '#' + fullPath : fullPath;
             return base ? cleanPath(base + '/' + path) : path;
+        };
+        VueRouter.prototype.registerHook = function (list, fn) {
+            list.push(fn);
+            return function () {
+                var i = list.indexOf(fn);
+                if (i > -1)
+                    list.splice(i, 1);
+            };
         };
         return VueRouter;
     }());
@@ -3058,127 +3479,6 @@
                 }
         }
     }
-
-    var Observer$1 = /** @class */ (function () {
-        function Observer(value) {
-            this.value = value;
-            this.dep = new Dep();
-            def(value, '__ob__', this);
-            if (Array.isArray(value)) {
-                value.__proto__ = arrayMethods;
-                this.observeArray(value);
-            }
-            else {
-                this.walk(value);
-            }
-        }
-        Observer.prototype.walk = function (obj) {
-            Object.keys(obj).forEach(function (key) {
-                defineReactive$1(obj, key);
-            });
-        };
-        Observer.prototype.observeArray = function (items) {
-            items.forEach(function (item) {
-                observe$1(item);
-            });
-        };
-        return Observer;
-    }());
-    function dependArray$1(values) {
-        values.forEach(function (value) {
-            if (isObservable$1(value)) {
-                value.__ob__.dep.depend();
-            }
-            if (Array.isArray(value))
-                dependArray$1(value);
-        });
-    }
-    function observe$1(value) {
-        /* 值类型不用进行响应式转换 */
-        if (!isObject(value))
-            return;
-        if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer$1) {
-            return value.__ob__;
-        }
-        if ((Array.isArray(value) || isPlainObject(value)) &&
-            Object.isExtensible(value)) {
-            return new Observer$1(value);
-        }
-    }
-    function defineReactive$1(obj, key, val, customSetter, shallow // 如果设置为true，则不会对val进行响应式处理，即只对obj的key属性的值响应式处理
-    ) {
-        var dep = new Dep();
-        var property = Object.getOwnPropertyDescriptor(obj, key);
-        if (property && property.configurable === false) {
-            return;
-        }
-        var getter = property && property.get;
-        var setter = property && property.set;
-        val = val ? val : obj[key];
-        var childOb = !shallow && observe$1(val);
-        Object.defineProperty(obj, key, {
-            enumerable: true,
-            configurable: true,
-            get: function reactiveGetter() {
-                var value = getter ? getter.call(obj) : val;
-                /**
-                 * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
-                 * 而事情发生在reactiveGetter中，Watcher正在读取obj对象
-                 * 那么就通知Watcher将该对象进行收集(在Watcher中会进一步判断是否该对象已经被收集)
-                 * 收集的是该状态的Dep，因为dep中存放着Watcher(订阅者)列表
-                 *
-                 * 与订阅观察者模式的不同是，前者是把所有的事件以及回调存放在一个全局统一变量中，通过事件名触发事件，依次调用回调函数列表中属于该事件名的回调函数
-                 * 而在vue中，每个状态都有一份独立的Dep，其中存放的是Watcher，在状态发生变化时，会遍历状态的Dep，触发Watcher的update()方法
-                 */
-                if (Dep.target) {
-                    dep.depend();
-                    if (childOb) {
-                        childOb.dep.depend();
-                        if (Array.isArray(value)) {
-                            dependArray$1(value);
-                        }
-                    }
-                }
-                return value;
-            },
-            set: function reactiveSetter(newVal) {
-                var value = getter ? getter.call(obj) : val;
-                if (newVal === value || (newVal !== newVal && value !== value)) {
-                    return;
-                }
-                if ( customSetter) {
-                    customSetter(newVal);
-                }
-                if (getter && !setter)
-                    return;
-                if (setter) {
-                    setter.call(obj, newVal);
-                }
-                else {
-                    val = newVal;
-                }
-                childOb = !shallow && observe$1(newVal);
-                // 依赖变化后，触发更新，通知Dep类调用notify来触发所有Watcher对象的update方法更新对应视图
-                /**
-                 * 获取到观察该状态的所有Watcher
-                 * 触发更新
-                 * (观察者模式中是调用订阅列表中的函数)
-                 */
-                dep.notify();
-            }
-        });
-    }
-    /*  helper */
-    function isObservable$1(value) {
-        if (value && value.__ob__) {
-            return true;
-        }
-        return false;
-    }
-    /**
-     * on   - getter => dep.depend() => watcher.deps.add(dep)
-     * emit - update => run
-     */
 
     var _Vue;
     var install = function (Vue) {

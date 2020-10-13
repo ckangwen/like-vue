@@ -5,7 +5,7 @@ import nodeResolve from 'rollup-plugin-node-resolve'
 const path = require('path')
 
 
-const filepath = './examples/vuex/'
+const filepath = './examples/router/'
 export default {
   input: filepath + 'index.ts',
   output: {

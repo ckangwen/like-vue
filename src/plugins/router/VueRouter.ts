@@ -1,6 +1,6 @@
 import { BaseHistory } from './history/base';
 import { Matcher } from './Matcher';
-import { RawLocation, Route, RouteRecord } from './types/router';
+import { RawLocation, Route, RouteRecord, NavigationGuard } from './types/router';
 import { HashHistory } from './history/hash';
 import { warn } from './utils/helper';
 import { HTML5History } from './history/html5';
@@ -13,10 +13,16 @@ export class VueRouter {
   history: HashHistory | HTML5History
   matcher: any
   mode: 'hash' | 'history'
+  beforeHooks: NavigationGuard[]
+  resolveHooks: NavigationGuard[]
+  afterHooks: NavigationGuard[]
 
   constructor(options = {} as any) {
     this.app = null
     this.options = options
+    this.beforeHooks = []
+    this.resolveHooks = []
+    this.afterHooks = []
     this.matcher = new Matcher(options.routes || [], this)
     let mode = options.mode || 'hash'
     this.mode = mode
@@ -104,7 +110,7 @@ export class VueRouter {
     const route = this.match(location, current)
     const fullPath = route.redirectedFrom || route.fullPath
     const base = this.history.base
-    const href = this.createHref(base, fullPath!, this.mode)
+    const href = this.createHref(base, fullPath!)
 
     return {
       location,
@@ -133,8 +139,29 @@ export class VueRouter {
     )
   }
 
-  private createHref(base: string, fullPath: string, mode: string) {
-    const path = mode === 'hash' ? '#' + fullPath : fullPath
+  beforeEach (fn: Function): Function {
+    return this.registerHook(this.beforeHooks, fn)
+  }
+
+  beforeResolve (fn: Function): Function {
+    return this.registerHook(this.resolveHooks, fn)
+  }
+
+  afterEach (fn: Function): Function {
+    return this.registerHook(this.afterHooks, fn)
+  }
+
+
+  private createHref(base: string, fullPath: string) {
+    const path = this.mode === 'hash' ? '#' + fullPath : fullPath
     return base ? cleanPath(base + '/' + path) : path
+  }
+
+  private registerHook(list: Function[], fn: Function) {
+    list.push(fn)
+    return () => {
+      const i = list.indexOf(fn)
+      if (i > -1) list.splice(i, 1)
+    }
   }
 }

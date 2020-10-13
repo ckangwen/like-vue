@@ -1,3 +1,4 @@
+import { Vue } from '@/core/Vue'
 import { Dictionary } from './helper';
 export interface Location {
   name?: string
@@ -56,8 +57,9 @@ export interface RouteRecord {
   props: Pick<SingleViewRouteConfig, 'props'> | Pick<MultiViewsRouteConfig, 'props'>
   regex: RegExp
   matchAs?: string
-  instances: Dictionary<any>
+  instances: Dictionary<Vue>
   components: Dictionary<RouteComponent>
+  beforeEnter?: NavigationGuard
 }
 
 /**
@@ -75,4 +77,30 @@ export interface Route {
   matched?: RouteRecord[] // 当前路由的所有嵌套路径片段的路由记录
   redirectedFrom?: string // 重定向来源的路由的名字
   meta?: any
+  beforeEnter?: NavigationGuard
 }
+
+export type NavigationGuardCallback = (to?: RawLocation | false | Vue | NavigationGuardCallback | void) => void
+export type NavigationGuard = (
+  to: Route,
+  from: Route,
+  next?: NavigationGuardCallback
+) => any
+
+
+export type NavigationGuardKeys =
+  | 'beforeEach'
+  | 'afterEach'
+  | 'beforeResolve'
+  | 'beforeEnter'
+  | 'beforeRouteEnter'
+  | 'beforeRouteUpdate'
+  | 'beforeRouteLeave'
+
+export type ComponentNavigationGuardKeys =
+  | 'beforeRouteEnter'
+  | 'beforeRouteUpdate'
+  | 'beforeRouteLeave'
+
+
+export type MatchedComponentConvertFn = (guard: Vue |  Dictionary<any>, instance: Vue, matched: RouteRecord, key: string) => NavigationGuard | NavigationGuard[] | undefined

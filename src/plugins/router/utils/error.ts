@@ -30,6 +30,28 @@ export function createNavigationRedirectedError (from: any, to: any) {
   )
 }
 
+export function createNavigationCancelledError (from: any, to: any) {
+  return createRouterError(
+    from,
+    to,
+    NavigationFailureType.cancelled,
+    `Navigation cancelled from "${from.fullPath}" to "${
+      to.fullPath
+    }" with a new navigation.`
+  )
+}
+
+export function createNavigationAbortedError (from: any, to: any) {
+  return createRouterError(
+    from,
+    to,
+    NavigationFailureType.aborted,
+    `Navigation aborted from "${from.fullPath}" to "${
+      to.fullPath
+    }" via a navigation guard.`
+  )
+}
+
 const propertiesToLog = ['params', 'query', 'hash']
 
 function stringifyRoute (to: any) {
