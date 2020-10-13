@@ -9,7 +9,7 @@ new Vue({
   props: {
     some: String
   },
-  render(this: any, h: Function) {
+  render(h: Function) {
     const { text } = this
     return h(
       'div', {}, [text]

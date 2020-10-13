@@ -6,19 +6,26 @@
   "devDependencies": {
     "@types/jest": "^26.0.14",
     "@types/node": "^14.6.4",
+    "@typescript-eslint/eslint-plugin": "^4.4.1",
+    "@typescript-eslint/parser": "^4.4.1",
     "csstype": "^3.0.3",
+    "eslint": "^7.11.0",
     "jest": "^26.4.2",
     "rollup": "^2.26.11",
     "rollup-plugin-alias": "^2.2.0",
+    "rollup-plugin-buble": "^0.19.8",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-typescript": "^1.0.1",
+    "terser": "^5.3.5",
     "ts-jest": "^26.4.1",
     "tslib": "^2.0.1",
     "typescript": "^4.0.2"
   },
   "scripts": {
-    "build": "rollup -c"
+    "build": "node build/build.js",
+    "examples": "rollup --config examples/rollup.examples.js",
+    "example": "rollup --config examples/rollup.single.js"
   },
   "dependencies": {
     "path-to-regexp": "^6.2.0"

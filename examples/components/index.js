@@ -74,6 +74,9 @@
     function isDef(c) {
         return c !== undefined && c !== null;
     }
+    function isVnode(vnode) {
+        return vnode.tag !== undefined || isDef(vnode.text);
+    }
     function isObject(value) {
         return value !== null && typeof value === 'object';
     }
@@ -404,10 +407,6 @@
         }
         return false;
     }
-    /**
-     * on   - getter => dep.depend() => watcher.deps.add(dep)
-     * emit - update => run
-     */
 
     var uid$1 = 0;
     var Watcher = /** @class */ (function () {
@@ -1666,6 +1665,163 @@
         });
     }
 
+    var Observer$1 = /** @class */ (function () {
+        function Observer(value) {
+            this.value = value;
+            this.dep = new Dep();
+            def(value, '__ob__', this);
+            if (Array.isArray(value)) {
+                value.__proto__ = arrayMethods;
+                this.observeArray(value);
+            }
+            else {
+                this.walk(value);
+            }
+        }
+        Observer.prototype.walk = function (obj) {
+            Object.keys(obj).forEach(function (key) {
+                defineReactive$1(obj, key);
+            });
+        };
+        Observer.prototype.observeArray = function (items) {
+            items.forEach(function (item) {
+                observe$1(item);
+            });
+        };
+        return Observer;
+    }());
+    function dependArray$1(values) {
+        values.forEach(function (value) {
+            if (isObservable$1(value)) {
+                value.__ob__.dep.depend();
+            }
+            if (Array.isArray(value))
+                dependArray$1(value);
+        });
+    }
+    function observe$1(value) {
+        /* 值类型不用进行响应式转换 */
+        if (!isObject(value))
+            return;
+        if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer$1) {
+            return value.__ob__;
+        }
+        if ((Array.isArray(value) || isPlainObject(value)) &&
+            Object.isExtensible(value)) {
+            return new Observer$1(value);
+        }
+    }
+    function defineReactive$1(obj, key, val, customSetter, shallow // 如果设置为true，则不会对val进行响应式处理，即只对obj的key属性的值响应式处理
+    ) {
+        var dep = new Dep();
+        var property = Object.getOwnPropertyDescriptor(obj, key);
+        if (property && property.configurable === false) {
+            return;
+        }
+        var getter = property && property.get;
+        var setter = property && property.set;
+        val = val ? val : obj[key];
+        var childOb = !shallow && observe$1(val);
+        Object.defineProperty(obj, key, {
+            enumerable: true,
+            configurable: true,
+            get: function reactiveGetter() {
+                var value = getter ? getter.call(obj) : val;
+                /**
+                 * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
+                 * 而事情发生在reactiveGetter中，Watcher正在读取obj对象
+                 * 那么就通知Watcher将该对象进行收集(在Watcher中会进一步判断是否该对象已经被收集)
+                 * 收集的是该状态的Dep，因为dep中存放着Watcher(订阅者)列表
+                 *
+                 * 与订阅观察者模式的不同是，前者是把所有的事件以及回调存放在一个全局统一变量中，通过事件名触发事件，依次调用回调函数列表中属于该事件名的回调函数
+                 * 而在vue中，每个状态都有一份独立的Dep，其中存放的是Watcher，在状态发生变化时，会遍历状态的Dep，触发Watcher的update()方法
+                 */
+                if (Dep.target) {
+                    dep.depend();
+                    if (childOb) {
+                        childOb.dep.depend();
+                        if (Array.isArray(value)) {
+                            dependArray$1(value);
+                        }
+                    }
+                }
+                return value;
+            },
+            set: function reactiveSetter(newVal) {
+                var value = getter ? getter.call(obj) : val;
+                if (newVal === value || (newVal !== newVal && value !== value)) {
+                    return;
+                }
+                if ( customSetter) {
+                    customSetter(newVal);
+                }
+                if (getter && !setter)
+                    return;
+                if (setter) {
+                    setter.call(obj, newVal);
+                }
+                else {
+                    val = newVal;
+                }
+                childOb = !shallow && observe$1(newVal);
+                // 依赖变化后，触发更新，通知Dep类调用notify来触发所有Watcher对象的update方法更新对应视图
+                /**
+                 * 获取到观察该状态的所有Watcher
+                 * 触发更新
+                 * (观察者模式中是调用订阅列表中的函数)
+                 */
+                dep.notify();
+            }
+        });
+    }
+    /*  helper */
+    function isObservable$1(value) {
+        if (value && value.__ob__) {
+            return true;
+        }
+        return false;
+    }
+    function set(target, key, value) {
+        if ( (!target || isPrimitive(target))) {
+            console.warn("Cannot set reactive property on undefined, null, or primitive value: " + target);
+        }
+        if (Array.isArray(target) && typeof key === 'number' && key < target.length) {
+            target.length = Math.max(target.length, key);
+            target.splice(key, 1, value);
+            return value;
+        }
+        if (key in target && !(key in Object.prototype)) {
+            target[key] = value;
+            return value;
+        }
+        var ob = target.__ob__;
+        if (!ob) {
+            target[key] = value;
+            return value;
+        }
+        defineReactive$1(ob.value, key, value);
+        ob.dep.notify();
+        return value;
+    }
+    function del(target, key) {
+        if ( (!target || isPrimitive(target))) {
+            console.warn("Cannot delete reactive property on undefined, null, or primitive value: " + target);
+        }
+        if (Array.isArray(target) && typeof key === 'number' && key < target.length) {
+            target.splice(key, 1);
+            return;
+        }
+        var ob = target.__ob__;
+        if (!hasOwn(target, key)) {
+            return;
+        }
+        delete target[key];
+        if (!ob) {
+            return;
+        }
+        ob.dep.notify();
+    }
+
     function setConfig(key, value) {
         if (key === 'set') {
             console.warn('Do not replace the set method');
@@ -1691,6 +1847,15 @@
         initUse(Vue);
         initMixin(Vue);
         initExtend(Vue);
+        Vue.set = set;
+        Vue.delete = del;
+        Vue.observable = function (obj) {
+            observe$1(obj);
+            return obj;
+        };
+        Vue.util = {
+            defineReactive: defineReactive$1
+        };
     }
 
     var uid$2 = 0;
@@ -1710,7 +1875,6 @@
              * 与全局options进行合并
              * 例如Vue.mixin()
              * */
-            // console.log(options, globalConfig);
             if (globalConfig.setOptions && options._isComponent) {
                 globalConfig.setOptions(this, options);
             }
@@ -1873,7 +2037,6 @@
              * 与全局options进行合并
              * 例如Vue.mixin()
              * */
-            // console.log(options, globalConfig);
             if (globalConfig.setOptions && options._isComponent) {
                 globalConfig.setOptions(this, options);
             }
@@ -2180,9 +2343,10 @@
         }
         var renderContext = new FunctionalRenderContext(data, props, context, Ctor, children);
         var vnode = (_a = options.render) === null || _a === void 0 ? void 0 : _a.call(null, renderContext.$createElement, renderContext);
-        if (vnode instanceof VNode) {
+        if (isVnode(vnode)) {
             return cloneAndMarkFunctionalResult(vnode, data, renderContext.parent, options);
         }
+        // TODO 数组形式的vnode
         if (Array.isArray(vnode)) {
             var vnodes = normalizeChildren(vnode) || [];
             var res = new Array(vnodes.length);

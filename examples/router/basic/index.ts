@@ -1,5 +1,5 @@
 import { Vue } from '@/core/Vue'
-import { VueRouter } from '../../src/plugins/router/VueRouter'
+import { VueRouter } from '../../../src/plugins/router/VueRouter'
 import VueRouterPlugin from '@/plugins/router'
 import componentsPlugin from '@/plugins/components'
 

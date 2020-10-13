@@ -1,13 +1,15 @@
 import { ExtendAPIOption, VueCtor } from '@/types';
 import { hasOwn, ASSET_TYPES, extend } from '@/shared';
 import { mergeOptions } from '../helper/options';
-export function initExtend(Vue: VueCtor) {
+
+export function initExtend(Vue: VueCtor): void {
   Vue.cid = 0
   let cid = 1
   Vue.extend = function(extendOptions: ExtendAPIOption = {}) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const Super = this
     const name = extendOptions.name || (Super as VueCtor).options.name
-    let Sub = extendClass(Super, Super.prototype, (key) => {
+    const Sub = extendClass(Super, Super.prototype, (key) => {
       return ['extend', 'mixin', 'use', ...ASSET_TYPES].indexOf(key) > -1
     })
     Sub.super = Super
@@ -16,13 +18,16 @@ export function initExtend(Vue: VueCtor) {
     Sub.options = mergeOptions(Super.options || {}, extendOptions)
     Sub.extendOptions = extendOptions
     Sub.sealedOptions = extend({}, Sub.options)
+    if (name) {
+      Sub.options.components[name] = Sub;
+    }
     return Sub
   }
 }
 
 /* helper */
 
-const defaultValidatePropKeyFn = (val: string) => true
+const defaultValidatePropKeyFn = () => true
 
 function extendClass(
   Super: Function,
@@ -30,13 +35,13 @@ function extendClass(
   some: ((key: string) => boolean) = defaultValidatePropKeyFn,
   before?: Function
 ): any {
-  function VueComponent (this: any) {
+  function VueComponent (this: any, ...args: any[]) {
     typeof before === 'function' && before.bind(this)()
 
     if (proto && proto.constructor) {
-	    return proto.constructor.apply(this, arguments);
+	    return proto.constructor.apply(this, ...args);
     } else {
-      return Super.apply(this, arguments);
+      return Super.apply(this, ...args);
     }
   }
 

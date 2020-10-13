@@ -2453,7 +2453,6 @@
             var store = this;
             var state = this._moduleCollection.root.state;
             var _a = this, dispatch = _a.dispatch, commit = _a.commit;
-            console.log(this);
             /* 绑定作用域 */
             this.dispatch = function boundDispatch(type, payload) {
                 return dispatch.call(store, type, payload);

@@ -2,14 +2,14 @@ import typescript from 'rollup-plugin-typescript';
 import replace from 'rollup-plugin-replace';
 import alias from 'rollup-plugin-alias'
 import nodeResolve from 'rollup-plugin-node-resolve'
-const path = require('path')
+import { join } from 'path'
 
+const filepath = join(__dirname, './router/basic')
 
-const filepath = './examples/router/'
 export default {
-  input: filepath + 'index.ts',
+  input: join(filepath, 'index.ts'),
   output: {
-    file: filepath + 'index.js',
+    file: join(filepath, 'index.js'),
     format: 'iife'
   },
   plugins: [
@@ -19,7 +19,7 @@ export default {
     alias({
       resolve: ['.ts', '.js'],
       entries: [
-        { find: '@', replacement: path.join(__dirname, './src') }
+        { find: '@', replacement: join(__dirname, '../src') }
       ]
     }),
     typescript({
