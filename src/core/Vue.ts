@@ -19,10 +19,6 @@ import {
   inBrowser,
 } from '@/shared'
 
-import computedPlugin from '@/plugins/computed'
-import watchPlugin from '@/plugins/watch'
-import componentsPlugin from '@/plugins/components'
-
 let uid = 0
 
 export class Vue {
@@ -232,7 +228,3 @@ export class Vue {
 }
 
 initGlobalAPI(Vue)
-
-Vue.use(computedPlugin)
-Vue.use(watchPlugin)
-Vue.use(componentsPlugin)

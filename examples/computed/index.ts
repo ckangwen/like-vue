@@ -1,33 +1,42 @@
 import { Vue } from '@/core/Vue'
-import computedPlugin from '@/plugins/computed'
+import computedPlugin from '@/plugins/computed';
+
 Vue.use(computedPlugin)
 
 new Vue({
   data() {
     return {
-      text: 'text'
+      count: 0
     }
   },
   computed: {
-    computedText() {
-      return '??' + this.text + '??'
+    evenOrOdd() {
+      return this.count % 2 === 0 ? 'even' : 'odd'
     }
   },
   methods: {
-    changeText() {
-      this.text = this.text + '!!'
-    }
+    increment() {
+      this.count++
+    },
+    decrement() {
+      this.count--
+    },
   },
-  render(this: any, h: Function) {
-    const { text, computedText, changeText } = this
-
+  render(h: Function) {
+    const { count, evenOrOdd, increment, decrement } = this
     return h(
-      'div', {}, [
-        h('p', {}, [computedText]),
-        h('p', {}, [text]),
-        h('button', { on: { click: changeText } }, 'changeText'),
-      ]
+      'div', [
+      h('p', `Clicked: ${count} times, count is ${evenOrOdd}.`),
+      h('button', { on: { click: increment } }, '+'),
+      h('button', { on: { click: decrement } }, '-'),
+    ]
     )
+  },
+  beforeCreate() {
+    console.log('beforeCreate');
+  },
+  created() {
+    console.log('created');
   }
 })
   .$mount('#app')

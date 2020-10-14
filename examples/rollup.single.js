@@ -4,7 +4,7 @@ import alias from 'rollup-plugin-alias'
 import nodeResolve from 'rollup-plugin-node-resolve'
 import { join } from 'path'
 
-const filepath = join(__dirname, './router/basic')
+const filepath = join(__dirname, './computed')
 
 export default {
   input: join(filepath, 'index.ts'),

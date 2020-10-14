@@ -280,7 +280,7 @@
             }
             if (inserted)
                 ob.observeArray(inserted);
-            ob.dep.notify(); // 数组改变之后，向依赖发送消息
+            ob === null || ob === void 0 ? void 0 : ob.dep.notify(); // 数组改变之后，向依赖发送消息
             return result;
         });
     });
@@ -346,6 +346,7 @@
             enumerable: true,
             configurable: true,
             get: function reactiveGetter() {
+                var _a;
                 var value = getter ? getter.call(obj) : val;
                 /**
                  * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
@@ -359,7 +360,7 @@
                 if (Dep.target) {
                     dep.depend();
                     if (childOb) {
-                        childOb.dep.depend();
+                        (_a = childOb.dep) === null || _a === void 0 ? void 0 : _a.depend();
                         if (Array.isArray(value)) {
                             dependArray(value);
                         }
@@ -547,7 +548,18 @@
                 this.deps[i].depend();
             }
         };
-        Watcher.prototype.teardown = function () { };
+        Watcher.prototype.teardown = function () {
+            if (this.active) {
+                if (!this.vm._isBeingDestroyed) {
+                    this.vm._watchers && remove(this.vm._watchers, this);
+                }
+                var i = this.deps.length;
+                while (i--) {
+                    this.deps[i].removeSub(this);
+                }
+                this.active = false;
+            }
+        };
         return Watcher;
     }());
     /******** helper *******/
@@ -918,7 +930,7 @@
             }
             callPatchHook(dataHook, 'postpatch', oldVnode, vnode);
         }
-        return function patch(oldVnode, vnode, hyphenate) {
+        return function patch(oldVnode, vnode) {
             if (!oldVnode) {
                 createElm(vnode);
             }
@@ -1165,20 +1177,20 @@
         if (!on) {
             for (name in oldOn) {
                 listener = oldOn[name];
-                oldElm.removeEventListener(name, listener, false);
+                oldElm === null || oldElm === void 0 ? void 0 : oldElm.removeEventListener(name, listener, false);
             }
         }
         else { // 存在新的事件监听器对象
             for (name in on) { // 添加监听器，存在于on但是不存在与oldOn
                 if (!oldOn[name]) {
                     listener = on[name];
-                    elm.addEventListener(name, listener, false);
+                    elm === null || elm === void 0 ? void 0 : elm.addEventListener(name, listener, false);
                 }
             }
             for (name in oldOn) { // 移除oldOn上不存在于on上的监听器
                 listener = oldOn[name];
                 if (!on[name]) {
-                    oldElm.removeEventListener(name, listener, false);
+                    oldElm === null || oldElm === void 0 ? void 0 : oldElm.removeEventListener(name, listener, false);
                 }
             }
         }
@@ -1597,20 +1609,28 @@
             Sub.options = mergeOptions(Super.options || {}, extendOptions);
             Sub.extendOptions = extendOptions;
             Sub.sealedOptions = extend({}, Sub.options);
+            if (name) {
+                Sub.options.components[name] = Sub;
+            }
             return Sub;
         };
     }
     /* helper */
-    var defaultValidatePropKeyFn = function (val) { return true; };
+    var defaultValidatePropKeyFn = function () { return true; };
     function extendClass(Super, proto, some, before) {
         if (some === void 0) { some = defaultValidatePropKeyFn; }
         function VueComponent() {
+            var _a;
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             typeof before === 'function' && before.bind(this)();
             if (proto && proto.constructor) {
-                return proto.constructor.apply(this, arguments);
+                return (_a = proto.constructor).apply.apply(_a, __spread([this], args));
             }
             else {
-                return Super.apply(this, arguments);
+                return Super.apply.apply(Super, __spread([this], args));
             }
         }
         VueComponent.prototype = Object.create(Super.prototype);
@@ -1703,6 +1723,7 @@
             enumerable: true,
             configurable: true,
             get: function reactiveGetter() {
+                var _a;
                 var value = getter ? getter.call(obj) : val;
                 /**
                  * 首先需要知道的是，Dep.target值若不为空，则表示Watcher正在读取它的依赖(读取getter)
@@ -1716,7 +1737,7 @@
                 if (Dep.target) {
                     dep.depend();
                     if (childOb) {
-                        childOb.dep.depend();
+                        (_a = childOb.dep) === null || _a === void 0 ? void 0 : _a.depend();
                         if (Array.isArray(value)) {
                             dependArray$1(value);
                         }
@@ -1965,8 +1986,12 @@
         Vue.prototype.$once = function (event, fn) {
             var vm = this;
             function on() {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
                 vm.$off(event, on);
-                fn.apply(vm, arguments);
+                fn.apply.apply(fn, __spread([vm], args));
             }
             on.fn = fn;
             vm.$on(event, on);
@@ -2127,8 +2152,12 @@
         Vue.prototype.$once = function (event, fn) {
             var vm = this;
             function on() {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
                 vm.$off(event, on);
-                fn.apply(vm, arguments);
+                fn.apply.apply(fn, __spread([vm], args));
             }
             on.fn = fn;
             vm.$on(event, on);
@@ -2253,26 +2282,35 @@
     new Vue({
         data: function () {
             return {
-                text: 'text'
+                count: 0
             };
         },
         computed: {
-            computedText: function () {
-                return '??' + this.text + '??';
+            evenOrOdd: function () {
+                return this.count % 2 === 0 ? 'even' : 'odd';
             }
         },
         methods: {
-            changeText: function () {
-                this.text = this.text + '!!';
-            }
+            increment: function () {
+                this.count++;
+            },
+            decrement: function () {
+                this.count--;
+            },
         },
         render: function (h) {
-            var _a = this, text = _a.text, computedText = _a.computedText, changeText = _a.changeText;
-            return h('div', {}, [
-                h('p', {}, [computedText]),
-                h('p', {}, [text]),
-                h('button', { on: { click: changeText } }, 'changeText'),
+            var _a = this, count = _a.count, evenOrOdd = _a.evenOrOdd, increment = _a.increment, decrement = _a.decrement;
+            return h('div', [
+                h('p', "Clicked: " + count + " times, count is " + evenOrOdd + "."),
+                h('button', { on: { click: increment } }, '+'),
+                h('button', { on: { click: decrement } }, '-'),
             ]);
+        },
+        beforeCreate: function () {
+            console.log('beforeCreate');
+        },
+        created: function () {
+            console.log('created');
         }
     })
         .$mount('#app');
