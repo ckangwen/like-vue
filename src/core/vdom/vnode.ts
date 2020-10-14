@@ -70,7 +70,7 @@ export function createTextVNode(text = '') {
 }
 
 export function createEmptyVNode(text = '') {
-  let vnode = new VNode({ text })
+  const vnode = new VNode({ text })
   vnode.isComment = true
   return vnode
 }

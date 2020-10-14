@@ -7,7 +7,7 @@ export function remove<T extends any>(arr: T[], item: T) {
   }
 }
 
-export function noop(...args: any[]) {}
+export function noop(...args: any[]) {/** */}
 
 const camelizeRE = /-(\w)/g
 export const camelize = (str: string): string => {
@@ -34,7 +34,7 @@ export const extend = <T extends object, U extends object>(
   b: U
 ): T & U => {
   for (const key in b) {
-    ;(a as any)[key] = b[key]
+    (a as any)[key] = b[key]
   }
   return a as any
 }

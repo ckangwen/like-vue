@@ -3,11 +3,6 @@ const path = require('path')
 const zlib = require('zlib')
 const terser = require('terser')
 const rollup = require('rollup')
-const configs = require('./config')
-
-if (!fs.existsSync('dist')) {
-  fs.mkdirSync('dist')
-}
 
 function build (builds) {
   let built = 0
@@ -33,7 +28,6 @@ function buildEntry ({ input, output }) {
     .rollup(input)
     .then(bundle => bundle.generate(output))
     .then(bundle => {
-      // console.log(bundle)
       const code = bundle.output[0].code
       if (isProd) {
         const minified =
@@ -92,4 +86,4 @@ function blue (str) {
   return '\x1b[1m\x1b[34m' + str + '\x1b[39m\x1b[22m'
 }
 
-build(configs)
+exports.build = build

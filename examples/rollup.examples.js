@@ -1,10 +1,9 @@
+import path from 'path'
+import fs from 'fs'
 import typescript from 'rollup-plugin-typescript';
 import replace from 'rollup-plugin-replace';
 import alias from 'rollup-plugin-alias'
 import nodeResolve from 'rollup-plugin-node-resolve'
-
-const path = require('path')
-const fs = require('fs')
 
 const basePath = path.resolve('./', __dirname)
 function getPaths(base) {

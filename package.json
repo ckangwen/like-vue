@@ -8,7 +8,8 @@
     "@types/node": "^14.6.4",
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.4.1",
-    "csstype": "^3.0.3",
+    "cz-conventional-changelog": "3.3.0",
+    "enquirer": "^2.3.6",
     "eslint": "^7.11.0",
     "jest": "^26.4.2",
     "rollup": "^2.26.11",
@@ -23,11 +24,38 @@
     "typescript": "^4.0.2"
   },
   "scripts": {
-    "build": "node build/build.js",
+    "build": "node build/build-all.js",
+    "build:package": "node build/build-package.js",
     "examples": "rollup --config examples/rollup.examples.js",
-    "example": "rollup --config examples/rollup.single.js"
+    "example": "rollup --config examples/rollup.single.js",
+    "lint": "eslint src",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
   },
   "dependencies": {
+    "csstype": "^3.0.3",
     "path-to-regexp": "^6.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ckangwen/vue-like.git"
+  },
+  "author": "ckangwen",
+  "bugs": {
+    "url": "https://github.com/ckangwen/vue-liek/issues"
+  },
+  "homepage": "https://github.com/ckangwen/vue-like#readme",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "gitHooks": {
+    "pre-commit": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "git add"
+    ]
   }
 }
