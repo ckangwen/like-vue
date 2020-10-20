@@ -1,5 +1,7 @@
 import { Dep, pushTarget, popTarget } from './Dep';
 import { CtorWatcherOptions } from '@/types/observe';
+import { traverse } from './traverse'
+import { queueWatcher } from './scheduler'
 import {
   __DEV__,
   noop,
@@ -101,6 +103,9 @@ export class Watcher<T extends withWatcher> {
      */
     pushTarget(this)
     const value = this.getter.call(this.vm, this.vm)
+    if (this.deep) {
+      traverse(value)
+    }
     popTarget()
     this.cleanupDeps()
     return value
@@ -157,11 +162,13 @@ export class Watcher<T extends withWatcher> {
    * 并触发回调函数
    */
   update() {
-    // TODO 异步更新
+    const vm: Watcher<any> = this
     if (this.lazy) {
       this.dirty = true
-    } else {
+    } else if (this.sync) {
       this.run()
+    } else {
+      queueWatcher(vm)
     }
   }
 

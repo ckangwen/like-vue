@@ -24,7 +24,6 @@ export function initEvent(vm: Vue) {
 }
 
 export function initLifecycle(vm: Vue) {
-  vm._isMounted = false
   const parent = vm.$options.parent
   vm.$parent = parent
 }

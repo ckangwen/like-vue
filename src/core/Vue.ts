@@ -3,6 +3,8 @@ import { VueCtor, ComponentOptions, VuePlugin, VueExtend, VueMixin, VuePluginOpt
 import { VNode, patch } from '@/core/vdom';
 import { initGlobalAPI } from './global-api/index';
 import { globalConfig } from '@/core/config';
+import { remove } from '../shared/utils';
+import { createEmptyVNode } from './vdom/vnode';
 import {
   callHook,
   initState,
@@ -49,6 +51,8 @@ export class Vue {
   _data?: Record<string, any>
   _events: any;
   _isMounted = false
+  _isDestroyed = false
+  _isBeingDestroyed = false
 
   $el: Element | null
   $parent: Vue | null = null
@@ -143,6 +147,40 @@ export class Vue {
 
     this._isMounted = true
     callHook(this, 'mounted')
+  }
+  $destory() {
+    const vm: Vue = this
+    if (vm._isBeingDestroyed) return
+
+    callHook(vm, 'beforeDestroy')
+    vm._isBeingDestroyed = true
+
+    const parent = vm.$parent
+    if (parent && !parent?._isBeingDestroyed) {
+      remove(parent.$children!, vm)
+    }
+
+    if (vm._watcher) {
+      vm._watcher.teardown()
+    }
+
+    if (vm._watchers) {
+      let i = vm._watchers!.length
+      while(i--) {
+        vm._watchers[i].teardown()
+      }
+    }
+
+    vm._isDestroyed = true
+    vm.__patch__(vm._vnode!, createEmptyVNode())
+    callHook(vm, 'destroyed')
+    vm.$off()
+  }
+  $forceUpdate() {
+    const vm: Vue = this
+    if (vm._watcher) {
+      vm._watcher?.update()
+    }
   }
 
   /* event */

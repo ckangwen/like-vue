@@ -12,6 +12,7 @@ export type LiftcycleEnum =
   | 'beforeMount'
   | 'mounted'
   | 'beforeUpdate'
+  | 'updated'
   | 'activated'
   | 'deactivated'
   | 'beforeDestroy'
